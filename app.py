@@ -155,6 +155,17 @@ def get_mini_history(ticker: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
+@st.cache_data(ttl=60)
+def get_intraday(ticker: str) -> pd.DataFrame:
+    """取得當日即時分鐘線（5 分鐘間隔，快取 1 分鐘）"""
+    try:
+        df = yf.Ticker(ticker).history(period="1d", interval="5m")
+        df.index = pd.to_datetime(df.index)
+        return df
+    except:
+        return pd.DataFrame()
+
+
 @st.cache_data(ttl=600)
 def get_news(ticker: str, n: int = 8) -> list:
     try:
@@ -477,7 +488,126 @@ CHART_BG = "#09101f"
 GRID_CLR = "#141e30"
 
 if not df.empty:
-    chart_tab, news_tab = st.tabs(["📊 圖表分析", "📰 相關新聞"])
+    today_tab, chart_tab, news_tab = st.tabs(["⚡ 今日走勢", "📊 圖表分析", "📰 相關新聞"])
+
+    # ── 今日即時走勢 ──────────────────────────────────────
+    with today_tab:
+        df_intra = get_intraday(sel_sym)
+
+        if not df_intra.empty and len(df_intra) > 1:
+            open_price = float(df_intra["Open"].iloc[0])
+            last_price = float(df_intra["Close"].iloc[-1])
+            intra_chg  = last_price - open_price
+            intra_pct  = (intra_chg / open_price * 100) if open_price else 0
+            intra_color = "#f87171" if intra_chg >= 0 else "#34d399"
+            intra_arrow = "▲" if intra_chg >= 0 else "▼"
+            today_high = float(df_intra["High"].max())
+            today_low  = float(df_intra["Low"].min())
+            today_vol  = int(df_intra["Volume"].sum()) if "Volume" in df_intra else 0
+
+            # 今日統計小卡
+            col_a, col_b, col_c, col_d = st.columns(4)
+            for c, label, val in [
+                (col_a, "開盤", fmt_price(open_price, sel_kind, sel_name)),
+                (col_b, "最高", fmt_price(today_high, sel_kind, sel_name)),
+                (col_c, "最低", fmt_price(today_low, sel_kind, sel_name)),
+                (col_d, "成交量", f"{today_vol:,}" if today_vol else "—"),
+            ]:
+                c.markdown(f"""
+                <div style="background:#0d1423;border:1px solid #1a2540;border-radius:8px;
+                     padding:10px 14px;margin-bottom:12px;">
+                  <div style="font-family:Space Mono;font-size:0.6rem;color:#475569;
+                       letter-spacing:1px;margin-bottom:4px;">{label}</div>
+                  <div style="font-family:Space Mono;font-size:1rem;font-weight:700;
+                       color:#f1f5f9;">{val}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            # 今日走勢圖
+            fig_intra = go.Figure()
+
+            # 開盤參考線
+            fig_intra.add_hline(
+                y=open_price,
+                line=dict(color="#475569", width=1, dash="dot"),
+                annotation_text="開盤",
+                annotation_font=dict(color="#475569", size=10, family="Space Mono"),
+                annotation_position="left",
+            )
+
+            # 價格面積線
+            fig_intra.add_trace(go.Scatter(
+                x=df_intra.index,
+                y=df_intra["Close"],
+                mode="lines",
+                line=dict(color=intra_color, width=2),
+                fill="tozeroy",
+                fillcolor=hex_to_rgba(intra_color, 0.06),
+                name="成交價",
+                hovertemplate="%{x|%H:%M}<br>%{y:.4f}<extra></extra>",
+            ))
+
+            # 成交量
+            if "Volume" in df_intra and df_intra["Volume"].sum() > 0:
+                vol_c = ["#f87171" if c >= o else "#34d399"
+                         for c, o in zip(df_intra["Close"], df_intra["Open"])]
+                fig_intra.add_trace(go.Bar(
+                    x=df_intra.index, y=df_intra["Volume"],
+                    marker_color=vol_c, opacity=0.25,
+                    name="成交量", yaxis="y2",
+                ))
+
+            # 最新價格標記
+            fig_intra.add_trace(go.Scatter(
+                x=[df_intra.index[-1]],
+                y=[last_price],
+                mode="markers+text",
+                marker=dict(color=intra_color, size=9, symbol="circle"),
+                text=[fmt_price(last_price, sel_kind, sel_name)],
+                textposition="top right",
+                textfont=dict(color=intra_color, size=11, family="Space Mono"),
+                name="最新", showlegend=False,
+            ))
+
+            fig_intra.update_layout(
+                paper_bgcolor=CHART_BG, plot_bgcolor=CHART_BG,
+                font=dict(color="#94a3b8", family="Space Mono", size=11),
+                xaxis=dict(
+                    gridcolor=GRID_CLR, showgrid=True,
+                    tickformat="%H:%M",
+                    rangeslider=dict(visible=False),
+                ),
+                yaxis=dict(gridcolor=GRID_CLR, side="right", showgrid=True),
+                yaxis2=dict(
+                    overlaying="y", side="left", showgrid=False, showticklabels=False,
+                    range=[0, df_intra["Volume"].max() * 5]
+                    if "Volume" in df_intra and df_intra["Volume"].sum() > 0 else [0, 1],
+                ),
+                legend=dict(orientation="h", y=1.06,
+                            font=dict(size=10, color="#6b7280"), bgcolor="rgba(0,0,0,0)"),
+                margin=dict(l=0, r=10, t=28, b=10),
+                height=380, hovermode="x unified",
+            )
+            st.plotly_chart(fig_intra, use_container_width=True)
+
+            # 今日摘要列
+            st.markdown(f"""
+            <div style="display:flex;align-items:center;gap:16px;padding:6px 4px;flex-wrap:wrap;">
+              <span style="font-family:Space Mono;font-size:0.7rem;color:#475569;">今日區間</span>
+              <span style="font-family:Space Mono;font-size:0.8rem;color:#34d399;">▼ {fmt_price(today_low, sel_kind)}</span>
+              <span style="font-family:Space Mono;font-size:0.7rem;color:#374151;">—</span>
+              <span style="font-family:Space Mono;font-size:0.8rem;color:#f87171;">▲ {fmt_price(today_high, sel_kind)}</span>
+              <span style="font-family:Space Mono;font-size:0.75rem;color:{intra_color};margin-left:12px;">
+                {intra_arrow} 今日 {intra_chg:+.4f} ({intra_pct:+.2f}%)
+              </span>
+              <span style="font-family:Space Mono;font-size:0.58rem;color:#1e293b;margin-left:auto;">
+                每 5 分鐘更新 · {datetime.now().strftime("%H:%M:%S")}
+              </span>
+            </div>
+            """, unsafe_allow_html=True)
+
+        else:
+            st.info("⏰ 目前非交易時間，或尚無今日盤中資料。請於交易時段查看。")
 
     with chart_tab:
         df2 = df.copy()
