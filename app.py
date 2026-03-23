@@ -362,10 +362,17 @@ if "sel_sym"       not in st.session_state: st.session_state.sel_sym       = PAG
 if "sel_name"      not in st.session_state: st.session_state.sel_name      = PAGES[page_keys[0]]["items"][0][0]
 if "sel_kind"      not in st.session_state: st.session_state.sel_kind      = PAGES[page_keys[0]]["items"][0][2]
 if "detail_period" not in st.session_state: st.session_state.detail_period = "1y"
-if "stock_sym"     not in st.session_state: st.session_state.stock_sym     = "2330.TW"
-if "stock_name"    not in st.session_state: st.session_state.stock_name    = "台積電"
-if "stock_market"  not in st.session_state: st.session_state.stock_market  = "🇹🇼 台股"
-if "stock_period"  not in st.session_state: st.session_state.stock_period  = "1y"
+if "stock_sym"      not in st.session_state: st.session_state.stock_sym      = "2330.TW"
+if "stock_name"     not in st.session_state: st.session_state.stock_name     = "台積電"
+if "stock_market"   not in st.session_state: st.session_state.stock_market   = "🇹🇼 台股"
+if "stock_period"   not in st.session_state: st.session_state.stock_period   = "1y"
+if "watchlist"      not in st.session_state:
+    st.session_state.watchlist = [
+        ("台積電",  "2330.TW"), ("鴻海",   "2317.TW"), ("聯發科", "2454.TW"),
+        ("Apple",   "AAPL"),    ("NVIDIA", "NVDA"),    ("Tesla",  "TSLA"),
+    ]
+if "wl_add_sym"     not in st.session_state: st.session_state.wl_add_sym  = ""
+if "wl_add_name"    not in st.session_state: st.session_state.wl_add_name = ""
 
 
 # ══════════════════════════════════════════════════════════
@@ -435,78 +442,120 @@ if cur_page == STOCK_PAGE_KEY:
     </div>
     """, unsafe_allow_html=True)
 
-    # ── 市場切換 + 搜尋列 ────────────────────────────────
-    src1, src2 = st.columns([2, 3])
+    # ══ 上方工具列：新增股票 ════════════════════════════════
+    add_c1, add_c2, add_c3, add_c4 = st.columns([2, 2, 1, 3])
 
-    with src1:
+    with add_c1:
         market_choice = st.selectbox(
-            "選擇市場",
+            "市場",
             list(MARKET_PRESETS.keys()),
             index=list(MARKET_PRESETS.keys()).index(st.session_state.stock_market),
             key="stock_market_sel",
+            label_visibility="collapsed",
         )
         if market_choice != st.session_state.stock_market:
             st.session_state.stock_market = market_choice
 
-    with src2:
-        # 決定代號後綴提示
-        suffix_hint = {"🇹🇼 台股": "例：2330.TW", "🇺🇸 美股": "例：AAPL", "🇯🇵 日股": "例：7203.T"}
-        custom_input = st.text_input(
-            "直接輸入代號",
-            placeholder=suffix_hint.get(st.session_state.stock_market, "輸入代號"),
-            key="stock_custom_input",
-        )
-        if custom_input:
-            sym_input = custom_input.strip().upper()
-            if st.button("🔍 查詢", key="stock_search_btn"):
-                q_test = get_quote(sym_input)
-                if q_test["price"] > 0:
-                    st.session_state.stock_sym  = sym_input
-                    st.session_state.stock_name = sym_input
-                    st.rerun()
-                else:
-                    st.error(f"找不到 `{sym_input}`，請確認代號格式")
+    suffix_hint = {"🇹🇼 台股": "代號，如 2330.TW", "🇺🇸 美股": "代號，如 AAPL", "🇯🇵 日股": "代號，如 7203.T"}
 
-    # ── 預設熱門股票卡片 ──────────────────────────────────
+    with add_c2:
+        new_sym = st.text_input("代號", placeholder=suffix_hint.get(st.session_state.stock_market,"代號"),
+                                key="wl_new_sym", label_visibility="collapsed")
+    with add_c3:
+        new_name = st.text_input("名稱（選填）", placeholder="名稱", key="wl_new_name",
+                                 label_visibility="collapsed")
+    with add_c4:
+        btn_add_col, btn_preset_col = st.columns([1, 2])
+        with btn_add_col:
+            if st.button("➕ 新增", key="wl_add_btn", use_container_width=True):
+                sym_in = new_sym.strip().upper()
+                if sym_in:
+                    already = [s for _, s in st.session_state.watchlist]
+                    if sym_in in already:
+                        st.warning(f"{sym_in} 已在清單中")
+                    else:
+                        q_test = get_quote(sym_in)
+                        if q_test["price"] > 0:
+                            disp_name = new_name.strip() if new_name.strip() else sym_in
+                            st.session_state.watchlist.append((disp_name, sym_in))
+                            st.session_state.stock_sym  = sym_in
+                            st.session_state.stock_name = disp_name
+                            st.rerun()
+                        else:
+                            st.error(f"找不到 `{sym_in}`，請確認代號格式")
+        with btn_preset_col:
+            # 快速加入預設
+            preset_names = [f"{n}（{s}）" for n, s in MARKET_PRESETS[st.session_state.stock_market]]
+            preset_sel = st.selectbox("快速加入熱門股", ["— 選擇 —"] + preset_names,
+                                      key="wl_preset_sel", label_visibility="collapsed")
+            if preset_sel != "— 選擇 —":
+                idx_p = preset_names.index(preset_sel)
+                p_name, p_sym = MARKET_PRESETS[st.session_state.stock_market][idx_p]
+                already = [s for _, s in st.session_state.watchlist]
+                if p_sym not in already:
+                    st.session_state.watchlist.append((p_name, p_sym))
+                    st.session_state.stock_sym  = p_sym
+                    st.session_state.stock_name = p_name
+                    st.rerun()
+
+    # ══ 自選清單卡片區 ════════════════════════════════════
     st.markdown(
         f'<div class="cat-bar" style="border-color:{accent};color:{accent};">'
-        f'{st.session_state.stock_market} 熱門個股</div>',
+        f'📌 自選清單 &nbsp;<span style="color:#374151;font-size:0.55rem;">共 {len(st.session_state.watchlist)} 支</span></div>',
         unsafe_allow_html=True,
     )
 
-    preset_items = MARKET_PRESETS[st.session_state.stock_market]
-    SCOLS = 6
-    for row_s in range(0, len(preset_items), SCOLS):
-        row_it = preset_items[row_s:row_s+SCOLS]
-        padded = row_it + [None] * (SCOLS - len(row_it))
-        scols  = st.columns(SCOLS)
-        for col, item in zip(scols, padded):
-            if item is None:
-                col.empty()
-                continue
-            s_name, s_sym = item
-            sq = get_quote(s_sym)
-            sp_str = fmt_price(sq["price"], "stock", s_name)
-            s_arrow = "▲" if sq["pct"] >= 0 else "▼"
-            s_dcls  = "mc-up" if sq["pct"] > 0 else ("mc-down" if sq["pct"] < 0 else "mc-flat")
-            is_sel  = (st.session_state.stock_sym == s_sym)
-            s_card  = "mini-card active" if is_sel else "mini-card"
-            s_bdr   = f"border-color:{accent};" if is_sel else ""
-            spark   = mini_sparkline(s_sym, accent if is_sel else "#1e3a5f")
+    if not st.session_state.watchlist:
+        st.info("清單為空，請用上方「➕ 新增」或「快速加入熱門股」加入個股")
+    else:
+        SCOLS = 6
+        to_delete = None   # 記錄要刪除的代號
 
-            col.markdown(f"""
-            <div class="{s_card}" style="{s_bdr}">
-              <div class="mc-name">{s_name}</div>
-              <div class="mc-price">{sp_str}</div>
-              <div class="{s_dcls}">{s_arrow} {sq['pct']:+.2f}%</div>
-              <div style="margin-top:4px;">{spark}</div>
-            </div>
-            """, unsafe_allow_html=True)
+        for row_s in range(0, len(st.session_state.watchlist), SCOLS):
+            row_it = st.session_state.watchlist[row_s:row_s+SCOLS]
+            padded = row_it + [None] * (SCOLS - len(row_it))
+            scols  = st.columns(SCOLS)
 
-            if col.button("▼ 展開", key=f"stock_sel_{s_sym}"):
-                st.session_state.stock_sym  = s_sym
-                st.session_state.stock_name = s_name
-                st.rerun()
+            for col, item in zip(scols, padded):
+                if item is None:
+                    col.empty()
+                    continue
+
+                s_name, s_sym = item
+                sq     = get_quote(s_sym)
+                sp_str = fmt_price(sq["price"], "stock", s_name)
+                s_arrow = "▲" if sq["pct"] >= 0 else "▼"
+                s_dcls  = "mc-up" if sq["pct"] > 0 else ("mc-down" if sq["pct"] < 0 else "mc-flat")
+                is_sel  = (st.session_state.stock_sym == s_sym)
+                s_card  = "mini-card active" if is_sel else "mini-card"
+                s_bdr   = f"border-color:{accent};" if is_sel else ""
+                spark   = mini_sparkline(s_sym, accent if is_sel else "#1e3a5f")
+
+                col.markdown(f"""
+                <div class="{s_card}" style="{s_bdr}">
+                  <div class="mc-name">{s_name}<span style="color:#1e293b;margin-left:4px;font-size:0.5rem;">{s_sym}</span></div>
+                  <div class="mc-price">{sp_str}</div>
+                  <div class="{s_dcls}">{s_arrow} {sq['pct']:+.2f}%</div>
+                  <div style="margin-top:4px;">{spark}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                # 展開 / 刪除 按鈕（2欄）
+                b1, b2 = col.columns([3, 1])
+                if b1.button("▼ 展開", key=f"wl_sel_{s_sym}"):
+                    st.session_state.stock_sym  = s_sym
+                    st.session_state.stock_name = s_name
+                    st.rerun()
+                if b2.button("✕", key=f"wl_del_{s_sym}", help=f"從清單移除 {s_name}"):
+                    to_delete = s_sym
+
+        if to_delete:
+            st.session_state.watchlist = [(n, s) for n, s in st.session_state.watchlist if s != to_delete]
+            # 若刪除的是目前選中的，改選第一支
+            if st.session_state.stock_sym == to_delete and st.session_state.watchlist:
+                st.session_state.stock_sym  = st.session_state.watchlist[0][1]
+                st.session_state.stock_name = st.session_state.watchlist[0][0]
+            st.rerun()
 
     # ── 個股詳細圖表 ──────────────────────────────────────
     stk_sym  = st.session_state.stock_sym
