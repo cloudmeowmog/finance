@@ -73,31 +73,55 @@ button[data-testid="collapsedControl"] {
 .nav-icon { font-size:1.1rem; }
 .nav-label { font-size:0.72rem; }
 
+/* ── 響應式卡片網格 ── */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-bottom: 4px;
+}
+@media (max-width: 1100px) {
+    .card-grid { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 700px) {
+    .card-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
 /* 迷你卡片 */
 .mini-card {
     background: #0d1423;
     border: 1px solid #1a2540;
     border-radius: 10px;
-    padding: 10px 12px 6px;
+    padding: 10px 12px 8px;
     position: relative;
     overflow: hidden;
-    height: 100%;
+    box-sizing: border-box;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
 }
+.mini-card:hover { border-color: #2d3f6b; background: #111d35; }
 .mini-card.active {
     border-color: #818cf8 !important;
     background: #151e38 !important;
     box-shadow: 0 0 0 2px rgba(129,140,248,0.15), 0 4px 20px rgba(79,70,229,0.15);
 }
 .mini-card.active::after {
-    content:'▼';
-    position:absolute; bottom:-2px; left:50%; transform:translateX(-50%);
-    font-size:0.5rem; color:#818cf8; line-height:1;
+    content: '▼';
+    position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+    font-size: 0.5rem; color: #818cf8; line-height: 1;
 }
 .mc-name  { font-family:'Space Mono',monospace; font-size:0.56rem; color:#475569; letter-spacing:1px; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.mc-price { font-family:'Space Mono',monospace; font-size:0.9rem; font-weight:700; color:#f1f5f9; margin-bottom:1px; }
+.mc-price { font-family:'Space Mono',monospace; font-size:0.9rem; font-weight:700; color:#f1f5f9; margin-bottom:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .mc-up    { font-family:'Space Mono',monospace; font-size:0.62rem; color:#f87171; }
 .mc-down  { font-family:'Space Mono',monospace; font-size:0.62rem; color:#34d399; }
 .mc-flat  { font-family:'Space Mono',monospace; font-size:0.62rem; color:#4b5563; }
+
+@media (max-width: 700px) {
+    .mc-price { font-size: 0.8rem; }
+    .mc-name  { font-size: 0.5rem; }
+    .mini-card { padding: 8px 8px 6px; }
+    .hero-title { font-size: 1rem !important; }
+}
 
 /* 分類列標題 */
 .cat-bar {
@@ -108,16 +132,23 @@ button[data-testid="collapsedControl"] {
     margin: 4px 0 10px;
 }
 
-/* 展開按鈕 */
+/* 展開選擇按鈕（隱藏式，視覺上融入卡片底部） */
 .stButton > button {
-    background: #0a0f1e !important; color: #374151 !important;
-    border: 1px solid #141e30 !important; border-radius: 0 0 8px 8px !important;
-    font-family: 'Space Mono', monospace !important; font-size:0.6rem !important;
-    padding: 2px 4px !important; margin-top:0 !important;
-    transition: all 0.15s !important; width:100% !important;
+    background: transparent !important;
+    color: #1e293b !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-family: 'Space Mono', monospace !important;
+    font-size: 0.55rem !important;
+    padding: 1px 0 !important;
+    margin-top: -4px !important;
+    transition: color 0.15s !important;
+    width: 100% !important;
+    line-height: 1 !important;
 }
 .stButton > button:hover {
-    background: #151e38 !important; border-color:#4f46e5 !important; color:#818cf8 !important;
+    color: #818cf8 !important;
+    background: transparent !important;
 }
 
 /* Tab 覆寫 */
@@ -412,44 +443,40 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 
-# ── 迷你卡片網格（每列 6 個）──────────────────────────────
-COLS_PER_ROW = 6
+# ── 響應式卡片網格（純 HTML，手機 3欄 / 桌機 6欄）──────────
+cards_html = '<div class="card-grid">'
 
-for row_start in range(0, len(items), COLS_PER_ROW):
-    row_items = items[row_start : row_start + COLS_PER_ROW]
-    # 補滿 6 欄
-    padded = row_items + [None] * (COLS_PER_ROW - len(row_items))
-    cols = st.columns(COLS_PER_ROW)
+for name, sym, kind in items:
+    q = fetch_q(sym, kind)
+    price_str = fmt_price(q["price"], kind, name)
+    arrow  = "▲" if q["pct"] >= 0 else "▼"
+    d_cls  = "mc-up" if q["pct"] > 0 else ("mc-down" if q["pct"] < 0 else "mc-flat")
+    is_sel = (st.session_state.sel_sym == sym)
+    card_cls = "mini-card active" if is_sel else "mini-card"
+    border_style = f"border-color:{accent};" if is_sel else ""
+    spark = mini_sparkline(sym, accent if is_sel else "#1e3a5f")
 
-    for col, item in zip(cols, padded):
-        if item is None:
-            col.empty()
-            continue
+    cards_html += f"""
+    <div class="{card_cls}" style="{border_style}">
+      <div class="mc-name">{name}</div>
+      <div class="mc-price">{price_str}</div>
+      <div class="{d_cls}">{arrow} {q['pct']:+.2f}%</div>
+      <div style="margin-top:5px;">{spark}</div>
+    </div>"""
 
-        name, sym, kind = item
-        q = fetch_q(sym, kind)
-        price_str = fmt_price(q["price"], kind, name)
-        arrow  = "▲" if q["pct"] >= 0 else "▼"
-        d_cls  = "mc-up" if q["pct"] > 0 else ("mc-down" if q["pct"] < 0 else "mc-flat")
-        is_sel = (st.session_state.sel_sym == sym)
-        card_cls = "mini-card active" if is_sel else "mini-card"
-        border_style = f"border-color:{accent};" if is_sel else ""
-        spark = mini_sparkline(sym, accent if is_sel else "#1e3a5f")
+cards_html += '</div>'
+st.markdown(cards_html, unsafe_allow_html=True)
 
-        col.markdown(f"""
-        <div class="{card_cls}" style="{border_style}">
-          <div class="mc-name">{name}</div>
-          <div class="mc-price">{price_str}</div>
-          <div class="{d_cls}">{arrow} {q['pct']:+.2f}%</div>
-          <div style="margin-top:4px;">{spark}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        if col.button("▼ 展開", key=f"sel_{sym}"):
-            st.session_state.sel_sym  = sym
-            st.session_state.sel_name = name
-            st.session_state.sel_kind = kind
-            st.rerun()
+# 隱藏式按鈕列（讓卡片可以被選取）——用透明按鈕對應每張卡
+btn_cols = st.columns(len(items))
+for bc, (name, sym, kind) in zip(btn_cols, items):
+    is_sel = (st.session_state.sel_sym == sym)
+    label = "✦" if is_sel else "·"
+    if bc.button(label, key=f"sel_{sym}", help=f"展開 {name}"):
+        st.session_state.sel_sym  = sym
+        st.session_state.sel_name = name
+        st.session_state.sel_kind = kind
+        st.rerun()
 
 
 # ══════════════════════════════════════════════════════════
