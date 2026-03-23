@@ -578,8 +578,7 @@ if not df.empty:
                 y=df_plot["Close"],
                 mode="lines",
                 line=dict(color=line_color, width=2),
-                fill="toself",
-                fillcolor=hex_to_rgba(line_color, 0.10),
+                fill="none",
                 name="成交價",
                 hovertemplate="%{x|%H:%M}<br>%{y:,.2f}<extra></extra>",
             ))
