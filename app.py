@@ -91,17 +91,42 @@ button[data-testid="collapsedControl"] {
     margin: 8px 0 12px;
 }
 
-/* 展開 / 操作 按鈕 */
+/* 展開按鈕：與卡片融合，整體可點感 */
 .stButton > button {
-    background: #0d1423 !important; color: #64748b !important;
-    border: 1px solid #1e293b !important; border-radius: 6px !important;
-    font-family: 'Noto Sans TC', sans-serif !important; font-size:0.78rem !important;
+    background: #111d2e !important;
+    color: #94a3b8 !important;
+    border: 1px solid #1e2d42 !important;
+    border-top: none !important;
+    border-radius: 0 0 10px 10px !important;
+    font-family: 'Noto Sans TC', sans-serif !important;
+    font-size: 0.78rem !important;
     font-weight: 500 !important;
-    padding: 3px 6px !important; margin-top: 2px !important;
-    transition: all 0.15s !important; width:100% !important;
+    padding: 5px 6px !important;
+    margin-top: -1px !important;
+    transition: all 0.15s !important;
+    width: 100% !important;
+    letter-spacing: 0.5px;
 }
 .stButton > button:hover {
-    background: #151e38 !important; border-color:#4f46e5 !important; color:#a5b4fc !important;
+    background: #1a2d48 !important;
+    border-color: #4f46e5 !important;
+    color: #a5b4fc !important;
+}
+/* 刪除按鈕：紅底警示 */
+button[kind="secondary"].del-btn,
+div[data-testid*="wl_del"] > button,
+.del-btn-wrap button {
+    background: #3b0d0d !important;
+    color: #fca5a5 !important;
+    border: 1px solid #7f1d1d !important;
+    border-radius: 6px !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+}
+div[data-testid*="wl_del"] > button:hover {
+    background: #7f1d1d !important;
+    color: #fff !important;
+    border-color: #ef4444 !important;
 }
 
 /* Tab 覆寫 */
@@ -117,6 +142,25 @@ button[data-testid="collapsedControl"] {
     border-color:#1e293b !important; color:#e2e8f0 !important;
 }
 div[data-testid="stMarkdownContainer"] p { font-size:0.9rem; line-height:1.7; color:#cbd5e1; }
+
+/* 刪除按鈕 (type=primary 覆寫成紅底) */
+.stButton > button[kind="primaryFormSubmit"],
+.stButton > button[data-testid="baseButton-primary"] {
+    background: #3b0d0d !important;
+    color: #fca5a5 !important;
+    border: 1px solid #7f1d1d !important;
+    border-radius: 6px !important;
+    border-top: 1px solid #7f1d1d !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    margin-top: 4px !important;
+    padding: 4px 6px !important;
+}
+.stButton > button[data-testid="baseButton-primary"]:hover {
+    background: #7f1d1d !important;
+    color: #fff !important;
+    border-color: #ef4444 !important;
+}
 
 ::-webkit-scrollbar { width:5px; height:5px; }
 ::-webkit-scrollbar-track { background:#070b14; }
@@ -540,22 +584,30 @@ if cur_page == STOCK_PAGE_KEY:
                 s_bdr   = f"border-color:{accent};" if is_sel else ""
                 spark   = mini_sparkline(s_sym, accent if is_sel else "#1e3a5f")
 
+                wl_sel_label = "✦ 查看中" if is_sel else "展開查看"
                 col.markdown(f"""
                 <div class="{s_card}" style="{s_bdr}">
-                  <div class="mc-name">{s_name}<span style="color:#1e293b;margin-left:4px;font-size:0.5rem;">{s_sym}</span></div>
+                  <div class="mc-name">{s_name}
+                    <span style="color:#2d3f5a;margin-left:4px;font-size:0.62rem;">{s_sym}</span>
+                  </div>
                   <div class="mc-price">{sp_str}</div>
                   <div class="{s_dcls}">{s_arrow} {sq['pct']:+.2f}%</div>
                   <div style="margin-top:4px;">{spark}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
-                # 展開 / 刪除 按鈕（2欄）
-                b1, b2 = col.columns([3, 1])
-                if b1.button("▼ 展開", key=f"wl_sel_{s_sym}"):
+                if col.button(wl_sel_label, key=f"wl_sel_{s_sym}"):
                     st.session_state.stock_sym  = s_sym
                     st.session_state.stock_name = s_name
                     st.rerun()
-                if b2.button("✕", key=f"wl_del_{s_sym}", help=f"從清單移除 {s_name}"):
+
+                # 紅底刪除按鈕
+                if col.button(
+                    "🗑 刪除",
+                    key=f"wl_del_{s_sym}",
+                    help=f"從清單移除 {s_name}",
+                    type="primary",
+                ):
                     to_delete = s_sym
 
         if to_delete:
@@ -821,6 +873,7 @@ else:
             border_style = f"border-color:{accent};" if is_sel else ""
             spark = mini_sparkline(sym, accent if is_sel else "#1e3a5f")
     
+            sel_label = "✦ 查看中" if is_sel else "展開查看"
             col.markdown(f"""
             <div class="{card_cls}" style="{border_style}">
               <div class="mc-name">{name}</div>
@@ -830,7 +883,7 @@ else:
             </div>
             """, unsafe_allow_html=True)
     
-            if col.button("▼ 展開", key=f"sel_{sym}"):
+            if col.button(sel_label, key=f"sel_{sym}"):
                 st.session_state.sel_sym  = sym
                 st.session_state.sel_name = name
                 st.session_state.sel_kind = kind
