@@ -195,18 +195,48 @@ def get_news(ticker: str, n: int = 8) -> list:
 
 @st.cache_data(ttl=300)
 def get_fx_rates() -> dict:
-    """取得主要外匯報價"""
-    pairs = {
-        "USD/TWD": "TWD=X",
-        "EUR/USD": "EURUSD=X",
-        "USD/JPY": "JPY=X",
-        "GBP/USD": "GBPUSD=X",
-        "USD/CNY": "CNY=X",
+    """取得主要外匯對台幣報價（單位：新台幣）
+    策略：先取 USD/TWD，再換算各幣對台幣匯率
+    """
+    usd_twd = get_quote("TWD=X")["price"]  # 1 USD = ? TWD
+
+    # (顯示名稱, Yahoo代號, 轉換模式)
+    # usd_twd = 直接就是 USD/TWD
+    # mul     = 幣/USD × USD/TWD  (如 EUR/USD × USD/TWD = EUR/TWD)
+    # inv     = 1/rate × USD/TWD  (如 USD/JPY → 1/rate × USD/TWD = JPY/TWD)
+    sources = {
+        "美元 USD":   ("TWD=X",     "usd_twd"),
+        "歐元 EUR":   ("EURUSD=X",  "mul"),
+        "日圓 JPY":   ("JPY=X",     "inv"),
+        "英鎊 GBP":   ("GBPUSD=X",  "mul"),
+        "人民幣 CNY": ("CNY=X",     "inv"),
+        "港幣 HKD":   ("HKD=X",     "inv"),
+        "澳幣 AUD":   ("AUDUSD=X",  "mul"),
+        "韓圜 KRW":   ("KRW=X",     "inv"),
     }
+
     result = {}
-    for label, sym in pairs.items():
+    for label, (sym, mode) in sources.items():
         q = get_quote(sym)
-        result[label] = q
+        raw  = q["price"]
+        prev = q["prev"] if q["prev"] else raw
+        if raw == 0:
+            result[label] = {"price": 0, "change": 0, "pct": 0, "prev": 0}
+            continue
+
+        if mode == "usd_twd":
+            twd_price = raw
+            prev_twd  = prev
+        elif mode == "mul":
+            twd_price = raw  * usd_twd
+            prev_twd  = prev * usd_twd
+        else:  # inv
+            twd_price = (1 / raw)  * usd_twd
+            prev_twd  = (1 / prev) * usd_twd if prev else twd_price
+
+        chg = twd_price - prev_twd
+        pct = (chg / prev_twd * 100) if prev_twd else 0
+        result[label] = {"price": twd_price, "change": chg, "pct": pct, "prev": prev_twd}
     return result
 
 
@@ -508,25 +538,36 @@ with tab2:
 # TAB 3：外匯 & 商品
 # ═══════════════════════════════════════════════
 with tab3:
-    st.markdown('<div class="section-title">主要外匯</div>', unsafe_allow_html=True)
-    fx = get_fx_rates()
-    fcols = st.columns(len(fx))
-    for col, (label, q) in zip(fcols, fx.items()):
-        arrow = "▲" if q["pct"] >= 0 else "▼"
-        delta_cls = "metric-delta-up" if q["pct"] >= 0 else "metric-delta-down"
-        col.markdown(f"""
-        <div class="metric-card">
-          <div class="metric-name">{label}</div>
-          <div class="metric-value" style="font-size:1.3rem;">{q['price']:.4f}</div>
-          <div class="{delta_cls}">{arrow} {q['pct']:+.2f}%</div>
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown('<div class="section-title">主要外匯（對新台幣）</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:0.75rem;color:#4b5563;font-family:Space Mono;margin-bottom:12px;">單位：新台幣（TWD）· 1 單位外幣 = ? 台幣</div>', unsafe_allow_html=True)
 
-    # 外匯走勢
-    st.markdown('<div class="section-title">TWD 走勢</div>', unsafe_allow_html=True)
+    fx = get_fx_rates()
+    # 每行4欄
+    fx_items = list(fx.items())
+    for row_start in range(0, len(fx_items), 4):
+        row_items = fx_items[row_start:row_start+4]
+        fcols = st.columns(4)
+        for col, (label, q) in zip(fcols, row_items):
+            arrow = "▲" if q["pct"] >= 0 else "▼"
+            delta_cls = "metric-delta-up" if q["pct"] >= 0 else "metric-delta-down"
+            # 日圓/韓圜較小，顯示4位小數；其他2位
+            if "JPY" in label or "KRW" in label:
+                price_fmt = f"{q['price']:.4f}"
+            else:
+                price_fmt = f"{q['price']:.4f}"
+            col.markdown(f"""
+            <div class="metric-card">
+              <div class="metric-name">{label} / TWD</div>
+              <div class="metric-value" style="font-size:1.3rem;">{price_fmt}</div>
+              <div class="{delta_cls}">{arrow} {q['change']:+.4f} ({q['pct']:+.2f}%)</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # 主要外匯走勢（均以 TWD 為基準，直接用 TWD=X 歷史）
+    st.markdown('<div class="section-title">USD/TWD 走勢</div>', unsafe_allow_html=True)
     twd_df = get_history("TWD=X", "3mo")
     if not twd_df.empty:
-        st.plotly_chart(line_chart(twd_df, "Close", "USD/TWD · 近 3 個月", "#34d399"),
+        st.plotly_chart(line_chart(twd_df, "Close", "美元對台幣 · 近 3 個月", "#34d399"),
                         use_container_width=True)
 
     # 大宗商品
