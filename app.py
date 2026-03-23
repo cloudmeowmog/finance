@@ -44,14 +44,14 @@ button[data-testid="collapsedControl"] {
     background: linear-gradient(135deg, #0f172a 0%, #1a1040 100%);
     border-radius: 12px; border: 1px solid #1e1b4b;
 }
-.hero-title { font-family:'Space Mono',monospace; font-size:1.3rem; font-weight:700; color:#a5b4fc; letter-spacing:2px; margin:0; }
-.hero-sub   { font-family:'Space Mono',monospace; font-size:0.62rem; color:#475569; letter-spacing:1px; margin-top:2px; }
-.hero-time  { font-family:'Space Mono',monospace; font-size:0.75rem; color:#475569; text-align:right; }
+.hero-title { font-family:'Space Mono',monospace; font-size:1.4rem; font-weight:700; color:#a5b4fc; letter-spacing:2px; margin:0; }
+.hero-sub   { font-family:'Noto Sans TC',sans-serif; font-size:0.82rem; color:#64748b; letter-spacing:0.5px; margin-top:4px; }
+.hero-time  { font-family:'Space Mono',monospace; font-size:0.82rem; color:#475569; text-align:right; }
 
 /* 側邊欄分頁按鈕 */
 .nav-logo {
     font-family:'Space Mono',monospace;
-    font-size:0.62rem; letter-spacing:2px; color:#1e293b;
+    font-size:0.75rem; letter-spacing:2px; color:#334155;
     text-transform:uppercase; margin-bottom:16px;
     padding-bottom:10px; border-bottom:1px solid #141e30;
 }
@@ -76,38 +76,47 @@ button[data-testid="collapsedControl"] {
     position:absolute; bottom:-2px; left:50%; transform:translateX(-50%);
     font-size:0.5rem; color:#818cf8; line-height:1;
 }
-.mc-name  { font-family:'Space Mono',monospace; font-size:0.56rem; color:#475569; letter-spacing:1px; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.mc-price { font-family:'Space Mono',monospace; font-size:0.9rem; font-weight:700; color:#f1f5f9; margin-bottom:1px; }
-.mc-up    { font-family:'Space Mono',monospace; font-size:0.62rem; color:#f87171; }
-.mc-down  { font-family:'Space Mono',monospace; font-size:0.62rem; color:#34d399; }
-.mc-flat  { font-family:'Space Mono',monospace; font-size:0.62rem; color:#4b5563; }
+.mc-name  { font-family:'Noto Sans TC',sans-serif; font-size:0.78rem; font-weight:500; color:#94a3b8; letter-spacing:0.5px; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mc-price { font-family:'Space Mono',monospace; font-size:1.05rem; font-weight:700; color:#f1f5f9; margin-bottom:3px; }
+.mc-up    { font-family:'Space Mono',monospace; font-size:0.78rem; font-weight:600; color:#f87171; }
+.mc-down  { font-family:'Space Mono',monospace; font-size:0.78rem; font-weight:600; color:#34d399; }
+.mc-flat  { font-family:'Space Mono',monospace; font-size:0.78rem; color:#4b5563; }
 
 /* 分類列標題 */
 .cat-bar {
-    font-family:'Space Mono',monospace;
-    font-size:0.6rem; letter-spacing:3px; text-transform:uppercase;
-    padding: 5px 0 7px 10px;
-    border-left: 2px solid;
-    margin: 4px 0 10px;
+    font-family:'Noto Sans TC',sans-serif;
+    font-size:0.82rem; font-weight:700; letter-spacing:2px;
+    padding: 6px 0 8px 12px;
+    border-left: 3px solid;
+    margin: 8px 0 12px;
 }
 
-/* 展開按鈕 */
+/* 展開 / 操作 按鈕 */
 .stButton > button {
-    background: #0a0f1e !important; color: #374151 !important;
-    border: 1px solid #141e30 !important; border-radius: 0 0 8px 8px !important;
-    font-family: 'Space Mono', monospace !important; font-size:0.6rem !important;
-    padding: 2px 4px !important; margin-top:0 !important;
+    background: #0d1423 !important; color: #64748b !important;
+    border: 1px solid #1e293b !important; border-radius: 6px !important;
+    font-family: 'Noto Sans TC', sans-serif !important; font-size:0.78rem !important;
+    font-weight: 500 !important;
+    padding: 3px 6px !important; margin-top: 2px !important;
     transition: all 0.15s !important; width:100% !important;
 }
 .stButton > button:hover {
-    background: #151e38 !important; border-color:#4f46e5 !important; color:#818cf8 !important;
+    background: #151e38 !important; border-color:#4f46e5 !important; color:#a5b4fc !important;
 }
 
 /* Tab 覆寫 */
 .stTabs [data-baseweb="tab-list"] { background:#0a0f1e; border-radius:8px 8px 0 0; gap:2px; padding:4px 4px 0; border-bottom:1px solid #1e293b; }
-.stTabs [data-baseweb="tab"] { background:#0d1423; color:#6b7280; border-radius:6px 6px 0 0 !important; font-family:'Space Mono',monospace; font-size:0.7rem; padding:6px 14px; border:1px solid #1a2540; border-bottom:none; }
-.stTabs [aria-selected="true"] { background:#1a1f35 !important; color:#a5b4fc !important; border-color:#4f46e5 !important; }
-.stTabs [data-baseweb="tab-panel"] { background:#0a0f1e; border:1px solid #1e293b; border-top:none; border-radius:0 0 8px 8px; padding:16px; }
+.stTabs [data-baseweb="tab"] { background:#0d1423; color:#94a3b8; border-radius:6px 6px 0 0 !important; font-family:'Noto Sans TC',sans-serif; font-size:0.85rem; font-weight:500; padding:7px 16px; border:1px solid #1a2540; border-bottom:none; }
+.stTabs [aria-selected="true"] { background:#1a1f35 !important; color:#a5b4fc !important; border-color:#4f46e5 !important; font-weight:700 !important; }
+.stTabs [data-baseweb="tab-panel"] { background:#0a0f1e; border:1px solid #1e293b; border-top:none; border-radius:0 0 8px 8px; padding:18px; }
+
+/* Streamlit 原生元件文字放大 */
+.stSelectbox label, .stTextInput label { font-size:0.85rem !important; color:#94a3b8 !important; }
+.stSelectbox > div > div, .stTextInput > div > div > input {
+    font-size:0.9rem !important; background:#0d1423 !important;
+    border-color:#1e293b !important; color:#e2e8f0 !important;
+}
+div[data-testid="stMarkdownContainer"] p { font-size:0.9rem; line-height:1.7; color:#cbd5e1; }
 
 ::-webkit-scrollbar { width:5px; height:5px; }
 ::-webkit-scrollbar-track { background:#070b14; }
@@ -681,11 +690,11 @@ if cur_page == STOCK_PAGE_KEY:
                 st.plotly_chart(fig_si, use_container_width=True)
                 st.markdown(f"""
                 <div style="display:flex;align-items:center;gap:16px;padding:6px 4px;flex-wrap:wrap;">
-                  <span style="font-family:Space Mono;font-size:0.7rem;color:#475569;">今日區間</span>
-                  <span style="font-family:Space Mono;font-size:0.8rem;color:#34d399;">▼ {fmt_price(stk_low,"stock")}</span>
-                  <span style="font-family:Space Mono;font-size:0.7rem;color:#374151;">—</span>
-                  <span style="font-family:Space Mono;font-size:0.8rem;color:#f87171;">▲ {fmt_price(stk_high,"stock")}</span>
-                  <span style="font-family:Space Mono;font-size:0.75rem;color:{stk_iclr};margin-left:12px;">
+                  <span style="font-family:Noto Sans TC,sans-serif;font-size:0.82rem;font-weight:500;color:#64748b;">今日區間</span>
+                  <span style="font-family:Space Mono;font-size:0.88rem;font-weight:600;color:#34d399;">▼ {fmt_price(stk_low,"stock")}</span>
+                  <span style="font-family:Space Mono;font-size:0.88rem;color:#374151;">—</span>
+                  <span style="font-family:Space Mono;font-size:0.88rem;font-weight:600;color:#f87171;">▲ {fmt_price(stk_high,"stock")}</span>
+                  <span style="font-family:Space Mono;font-size:0.85rem;font-weight:600;color:{stk_iclr};margin-left:12px;">
                     {stk_iarrow} 較前收 {stk_ichg:+.4f} ({stk_ipct:+.2f}%)
                   </span>
                 </div>
@@ -733,12 +742,12 @@ if cur_page == STOCK_PAGE_KEY:
             st.plotly_chart(fig_s, use_container_width=True)
             st.markdown("""
             <div style="display:flex;gap:20px;padding:6px 4px 0;flex-wrap:wrap;">
-              <span style="font-family:Space Mono;font-size:0.65rem;color:#facc15;">━ 5日線</span>
-              <span style="font-family:Space Mono;font-size:0.65rem;color:#60a5fa;">━ 月線(MA20)</span>
-              <span style="font-family:Space Mono;font-size:0.65rem;color:#f97316;">━ 季線(MA60)</span>
-              <span style="font-family:Space Mono;font-size:0.65rem;color:#c084fc;">━ 年線(MA240)</span>
-              <span style="font-family:Space Mono;font-size:0.65rem;color:#f87171;">█ 漲</span>
-              <span style="font-family:Space Mono;font-size:0.65rem;color:#34d399;">█ 跌</span>
+              <span style="font-family:Space Mono;font-size:0.8rem;color:#facc15;">━ 5日線</span>
+              <span style="font-family:Space Mono;font-size:0.8rem;color:#60a5fa;">━ 月線(MA20)</span>
+              <span style="font-family:Space Mono;font-size:0.8rem;color:#f97316;">━ 季線(MA60)</span>
+              <span style="font-family:Space Mono;font-size:0.8rem;color:#c084fc;">━ 年線(MA240)</span>
+              <span style="font-family:Space Mono;font-size:0.8rem;color:#f87171;">█ 漲</span>
+              <span style="font-family:Space Mono;font-size:0.8rem;color:#34d399;">█ 跌</span>
             </div>
             """, unsafe_allow_html=True)
 
@@ -756,9 +765,9 @@ if cur_page == STOCK_PAGE_KEY:
                     <div style="background:#0d1423;border:1px solid #1a2540;border-radius:8px;
                          padding:12px 16px;margin-bottom:8px;">
                       <a href="{link}" target="_blank" style="text-decoration:none;">
-                        <div style="font-size:0.88rem;color:#c7d2fe;font-weight:500;line-height:1.5;">{title}</div>
+                        <div style="font-size:0.95rem;color:#dde6f5;font-weight:500;line-height:1.6;">{title}</div>
                       </a>
-                      <div style="font-size:0.65rem;color:#334155;font-family:Space Mono;margin-top:5px;">
+                      <div style="font-size:0.75rem;color:#475569;font-family:Space Mono;margin-top:6px;">
                         📰 {source} &nbsp;·&nbsp; {pub_dt}
                       </div>
                     </div>
@@ -1037,14 +1046,14 @@ else:
                 # 今日摘要列
                 st.markdown(f"""
                 <div style="display:flex;align-items:center;gap:16px;padding:6px 4px;flex-wrap:wrap;">
-                  <span style="font-family:Space Mono;font-size:0.7rem;color:#475569;">今日區間</span>
-                  <span style="font-family:Space Mono;font-size:0.8rem;color:#34d399;">▼ {fmt_price(today_low, sel_kind)}</span>
-                  <span style="font-family:Space Mono;font-size:0.7rem;color:#374151;">—</span>
-                  <span style="font-family:Space Mono;font-size:0.8rem;color:#f87171;">▲ {fmt_price(today_high, sel_kind)}</span>
-                  <span style="font-family:Space Mono;font-size:0.75rem;color:{intra_color};margin-left:12px;">
+                  <span style="font-family:Noto Sans TC,sans-serif;font-size:0.82rem;font-weight:500;color:#64748b;">今日區間</span>
+                  <span style="font-family:Space Mono;font-size:0.88rem;font-weight:600;color:#34d399;">▼ {fmt_price(today_low, sel_kind)}</span>
+                  <span style="font-family:Space Mono;font-size:0.88rem;color:#374151;">—</span>
+                  <span style="font-family:Space Mono;font-size:0.88rem;font-weight:600;color:#f87171;">▲ {fmt_price(today_high, sel_kind)}</span>
+                  <span style="font-family:Space Mono;font-size:0.85rem;font-weight:600;color:{intra_color};margin-left:12px;">
                     {intra_arrow} 較前收 {intra_chg:+.4f} ({intra_pct:+.2f}%)
                   </span>
-                  <span style="font-family:Space Mono;font-size:0.58rem;color:#1e293b;margin-left:auto;">
+                  <span style="font-family:Space Mono;font-size:0.72rem;color:#334155;margin-left:auto;">
                     每 5 分鐘更新 · {datetime.now().strftime("%H:%M:%S")}
                   </span>
                 </div>
@@ -1107,12 +1116,12 @@ else:
     
             st.markdown("""
             <div style="display:flex;gap:20px;padding:6px 4px 0;flex-wrap:wrap;">
-              <span style="font-family:Space Mono;font-size:0.65rem;color:#facc15;">━ 5日線</span>
-              <span style="font-family:Space Mono;font-size:0.65rem;color:#60a5fa;">━ 月線 (MA20)</span>
-              <span style="font-family:Space Mono;font-size:0.65rem;color:#f97316;">━ 季線 (MA60)</span>
-              <span style="font-family:Space Mono;font-size:0.65rem;color:#c084fc;">━ 年線 (MA240)</span>
-              <span style="font-family:Space Mono;font-size:0.65rem;color:#f87171;">█ 漲</span>
-              <span style="font-family:Space Mono;font-size:0.65rem;color:#34d399;">█ 跌</span>
+              <span style="font-family:Space Mono;font-size:0.8rem;color:#facc15;">━ 5日線</span>
+              <span style="font-family:Space Mono;font-size:0.8rem;color:#60a5fa;">━ 月線 (MA20)</span>
+              <span style="font-family:Space Mono;font-size:0.8rem;color:#f97316;">━ 季線 (MA60)</span>
+              <span style="font-family:Space Mono;font-size:0.8rem;color:#c084fc;">━ 年線 (MA240)</span>
+              <span style="font-family:Space Mono;font-size:0.8rem;color:#f87171;">█ 漲</span>
+              <span style="font-family:Space Mono;font-size:0.8rem;color:#34d399;">█ 跌</span>
             </div>
             """, unsafe_allow_html=True)
     
@@ -1129,9 +1138,9 @@ else:
                     <div style="background:#0d1423;border:1px solid #1a2540;border-radius:8px;
                          padding:12px 16px;margin-bottom:8px;">
                       <a href="{link}" target="_blank" style="text-decoration:none;">
-                        <div style="font-size:0.88rem;color:#c7d2fe;font-weight:500;line-height:1.5;">{title}</div>
+                        <div style="font-size:0.95rem;color:#dde6f5;font-weight:500;line-height:1.6;">{title}</div>
                       </a>
-                      <div style="font-size:0.65rem;color:#334155;font-family:Space Mono;margin-top:5px;">
+                      <div style="font-size:0.75rem;color:#475569;font-family:Space Mono;margin-top:6px;">
                         📰 {source} &nbsp;·&nbsp; {pub_dt}
                       </div>
                     </div>
