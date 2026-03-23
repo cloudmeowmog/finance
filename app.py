@@ -495,23 +495,33 @@ if not df.empty:
         df_intra = get_intraday(sel_sym)
 
         if not df_intra.empty and len(df_intra) > 1:
+            # ── 取得前一交易日收盤作為走勢起點 ──────────────
+            df_prev = get_history(sel_sym, "5d")
+            if not df_prev.empty and len(df_prev) >= 2:
+                prev_close = float(df_prev["Close"].iloc[-2])
+            else:
+                prev_close = float(df_intra["Open"].iloc[0])
+
             open_price = float(df_intra["Open"].iloc[0])
             last_price = float(df_intra["Close"].iloc[-1])
-            intra_chg  = last_price - open_price
-            intra_pct  = (intra_chg / open_price * 100) if open_price else 0
+
+            # 漲跌相對前一日收盤計算
+            intra_chg   = last_price - prev_close
+            intra_pct   = (intra_chg / prev_close * 100) if prev_close else 0
             intra_color = "#f87171" if intra_chg >= 0 else "#34d399"
             intra_arrow = "▲" if intra_chg >= 0 else "▼"
-            today_high = float(df_intra["High"].max())
-            today_low  = float(df_intra["Low"].min())
-            today_vol  = int(df_intra["Volume"].sum()) if "Volume" in df_intra else 0
+            today_high  = float(df_intra["High"].max())
+            today_low   = float(df_intra["Low"].min())
+            today_vol   = int(df_intra["Volume"].sum()) if "Volume" in df_intra else 0
 
-            # 今日統計小卡
-            col_a, col_b, col_c, col_d = st.columns(4)
+            # ── 統計小卡（增加前收欄位）────────────────────
+            col_a, col_b, col_c, col_d, col_e = st.columns(5)
             for c, label, val in [
-                (col_a, "開盤", fmt_price(open_price, sel_kind, sel_name)),
-                (col_b, "最高", fmt_price(today_high, sel_kind, sel_name)),
-                (col_c, "最低", fmt_price(today_low, sel_kind, sel_name)),
-                (col_d, "成交量", f"{today_vol:,}" if today_vol else "—"),
+                (col_a, "前收",   fmt_price(prev_close, sel_kind, sel_name)),
+                (col_b, "開盤",   fmt_price(open_price, sel_kind, sel_name)),
+                (col_c, "最高",   fmt_price(today_high, sel_kind, sel_name)),
+                (col_d, "最低",   fmt_price(today_low,  sel_kind, sel_name)),
+                (col_e, "成交量", f"{today_vol:,}" if today_vol else "—"),
             ]:
                 c.markdown(f"""
                 <div style="background:#0d1423;border:1px solid #1a2540;border-radius:8px;
@@ -523,37 +533,65 @@ if not df.empty:
                 </div>
                 """, unsafe_allow_html=True)
 
-            # 今日走勢圖
+            # ── 走勢圖：前收起點 → 今日分鐘線 ─────────────
+            # 在盤中資料前插入前一日收盤點，讓折線從前收出發
+            prev_ts = df_intra.index[0] - pd.Timedelta(minutes=5)
+            anchor_row = pd.DataFrame(
+                {"Open": prev_close, "High": prev_close,
+                 "Low": prev_close, "Close": prev_close, "Volume": 0},
+                index=[prev_ts],
+            )
+            df_plot = pd.concat([anchor_row, df_intra])
+
             fig_intra = go.Figure()
 
-            # 開盤參考線
+            # 前收基準線（實線，帶標籤）
             fig_intra.add_hline(
-                y=open_price,
-                line=dict(color="#475569", width=1, dash="dot"),
-                annotation_text="開盤",
-                annotation_font=dict(color="#475569", size=10, family="Space Mono"),
+                y=prev_close,
+                line=dict(color="#475569", width=1, dash="dash"),
+                annotation_text=f"前收 {fmt_price(prev_close, sel_kind)}",
+                annotation_font=dict(color="#6b7280", size=10, family="Space Mono"),
                 annotation_position="left",
             )
 
-            # 價格面積線
+            # 今日開盤參考線（點線）
+            if abs(open_price - prev_close) / prev_close > 0.001:
+                fig_intra.add_hline(
+                    y=open_price,
+                    line=dict(color="#334155", width=1, dash="dot"),
+                    annotation_text=f"開盤 {fmt_price(open_price, sel_kind)}",
+                    annotation_font=dict(color="#475569", size=9, family="Space Mono"),
+                    annotation_position="left",
+                )
+
+            # ── 計算 Y 軸範圍：以前收為中心，加上緩衝 ────
+            line_color = intra_color
+            all_prices = list(df_plot["Close"].dropna())
+            y_min = min(all_prices)
+            y_max = max(all_prices)
+            y_pad = (y_max - y_min) * 0.15 if y_max != y_min else y_max * 0.005
+            y_range = [y_min - y_pad, y_max + y_pad * 2]   # 上方多留空間放標籤
+
+            # 走勢面積線（從前收起點開始，fill 到 y_min 而非 0）
             fig_intra.add_trace(go.Scatter(
-                x=df_intra.index,
-                y=df_intra["Close"],
+                x=df_plot.index,
+                y=df_plot["Close"],
                 mode="lines",
-                line=dict(color=intra_color, width=2),
-                fill="tozeroy",
-                fillcolor=hex_to_rgba(intra_color, 0.06),
+                line=dict(color=line_color, width=2),
+                fill="toself",
+                fillcolor=hex_to_rgba(line_color, 0.10),
                 name="成交價",
-                hovertemplate="%{x|%H:%M}<br>%{y:.4f}<extra></extra>",
+                hovertemplate="%{x|%H:%M}<br>%{y:,.2f}<extra></extra>",
             ))
 
-            # 成交量
-            if "Volume" in df_intra and df_intra["Volume"].sum() > 0:
+            # 成交量（獨立子圖，不影響主圖 Y 軸）
+            has_vol = "Volume" in df_intra and df_intra["Volume"].sum() > 0
+            if has_vol:
                 vol_c = ["#f87171" if c >= o else "#34d399"
                          for c, o in zip(df_intra["Close"], df_intra["Open"])]
                 fig_intra.add_trace(go.Bar(
                     x=df_intra.index, y=df_intra["Volume"],
-                    marker_color=vol_c, opacity=0.25,
+                    marker_color=vol_c, opacity=0.28,
                     name="成交量", yaxis="y2",
                 ))
 
@@ -562,12 +600,23 @@ if not df.empty:
                 x=[df_intra.index[-1]],
                 y=[last_price],
                 mode="markers+text",
-                marker=dict(color=intra_color, size=9, symbol="circle"),
+                marker=dict(color=line_color, size=9, symbol="circle",
+                            line=dict(color="#070b14", width=1)),
                 text=[fmt_price(last_price, sel_kind, sel_name)],
                 textposition="top right",
-                textfont=dict(color=intra_color, size=11, family="Space Mono"),
+                textfont=dict(color=line_color, size=11, family="Space Mono"),
                 name="最新", showlegend=False,
             ))
+
+            # 前收價右側標籤
+            fig_intra.add_annotation(
+                x=1, xref="paper", y=prev_close,
+                text=f"前收 {fmt_price(prev_close, sel_kind)}",
+                showarrow=False,
+                xanchor="left", yanchor="middle",
+                font=dict(color="#6b7280", size=10, family="Space Mono"),
+                bgcolor="rgba(9,16,31,0.7)",
+            )
 
             fig_intra.update_layout(
                 paper_bgcolor=CHART_BG, plot_bgcolor=CHART_BG,
@@ -576,17 +625,25 @@ if not df.empty:
                     gridcolor=GRID_CLR, showgrid=True,
                     tickformat="%H:%M",
                     rangeslider=dict(visible=False),
+                    showline=True, linecolor=GRID_CLR,
                 ),
-                yaxis=dict(gridcolor=GRID_CLR, side="right", showgrid=True),
+                # 主 Y 軸：縮放到價格區間，右側顯示
+                yaxis=dict(
+                    gridcolor=GRID_CLR, showgrid=True,
+                    side="right",
+                    range=y_range,
+                    tickformat=",.0f",
+                ),
+                # 副 Y 軸：成交量，佔圖底部 20%
                 yaxis2=dict(
-                    overlaying="y", side="left", showgrid=False, showticklabels=False,
-                    range=[0, df_intra["Volume"].max() * 5]
-                    if "Volume" in df_intra and df_intra["Volume"].sum() > 0 else [0, 1],
+                    overlaying="y", side="left",
+                    showgrid=False, showticklabels=False,
+                    range=[0, df_intra["Volume"].max() * 8] if has_vol else [0, 1],
                 ),
                 legend=dict(orientation="h", y=1.06,
                             font=dict(size=10, color="#6b7280"), bgcolor="rgba(0,0,0,0)"),
-                margin=dict(l=0, r=10, t=28, b=10),
-                height=380, hovermode="x unified",
+                margin=dict(l=0, r=80, t=28, b=10),
+                height=420, hovermode="x unified",
             )
             st.plotly_chart(fig_intra, use_container_width=True)
 
@@ -598,7 +655,7 @@ if not df.empty:
               <span style="font-family:Space Mono;font-size:0.7rem;color:#374151;">—</span>
               <span style="font-family:Space Mono;font-size:0.8rem;color:#f87171;">▲ {fmt_price(today_high, sel_kind)}</span>
               <span style="font-family:Space Mono;font-size:0.75rem;color:{intra_color};margin-left:12px;">
-                {intra_arrow} 今日 {intra_chg:+.4f} ({intra_pct:+.2f}%)
+                {intra_arrow} 較前收 {intra_chg:+.4f} ({intra_pct:+.2f}%)
               </span>
               <span style="font-family:Space Mono;font-size:0.58rem;color:#1e293b;margin-left:auto;">
                 每 5 分鐘更新 · {datetime.now().strftime("%H:%M:%S")}
