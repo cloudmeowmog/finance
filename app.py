@@ -15,156 +15,301 @@ st.set_page_config(
 # ── CSS ───────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
 
-html, body, [class*="css"] { font-family: 'Noto Sans TC', sans-serif; }
-.stApp { background: #070b14; color: #e2e8f0; }
-.block-container { padding-top: 1.2rem !important; padding-bottom: 2rem !important; }
+/* ══ 基底 ════════════════════════════════════════════════ */
+html, body, [class*="css"] {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: #020510;
+}
+.stApp {
+    background:
+        radial-gradient(ellipse 80% 40% at 20% 0%, rgba(14,165,233,0.04) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 100%, rgba(99,102,241,0.05) 0%, transparent 60%),
+        #020510;
+    color: #ccd6f6;
+}
+.block-container { padding-top: 1rem !important; padding-bottom: 2rem !important; }
 
-/* 側邊欄樣式 */
+/* ══ 側邊欄 ══════════════════════════════════════════════ */
 section[data-testid="stSidebar"] {
-    background: #09101f !important;
-    border-right: 1px solid #141e30 !important;
-    min-width: 180px !important;
-    max-width: 200px !important;
+    background: rgba(2,5,16,0.97) !important;
+    border-right: 1px solid rgba(14,165,233,0.15) !important;
+    min-width: 190px !important;
+    max-width: 210px !important;
+    backdrop-filter: blur(12px);
 }
-section[data-testid="stSidebar"] > div { padding: 1rem 0.6rem; }
-
-/* 側邊欄收合按鈕 */
+section[data-testid="stSidebar"] > div { padding: 1rem 0.7rem; }
 button[data-testid="collapsedControl"] {
-    background: #09101f !important;
-    border: 1px solid #141e30 !important;
-    color: #4f46e5 !important;
+    background: #020510 !important;
+    border: 1px solid rgba(14,165,233,0.3) !important;
+    color: #38bdf8 !important;
 }
 
-/* Hero */
+/* ══ Nav Logo ════════════════════════════════════════════ */
+.nav-logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 3px; color: #38bdf8;
+    text-transform: uppercase;
+    margin-bottom: 18px; padding-bottom: 12px;
+    border-bottom: 1px solid rgba(14,165,233,0.2);
+    text-shadow: 0 0 12px rgba(56,189,248,0.5);
+}
+
+/* ══ Hero ════════════════════════════════════════════════ */
 .hero {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 24px; margin-bottom: 16px;
-    background: linear-gradient(135deg, #0f172a 0%, #1a1040 100%);
-    border-radius: 12px; border: 1px solid #1e1b4b;
+    padding: 16px 28px; margin-bottom: 18px;
+    background: linear-gradient(135deg,
+        rgba(2,5,16,0.95) 0%,
+        rgba(8,18,40,0.95) 50%,
+        rgba(2,5,16,0.95) 100%);
+    border-radius: 4px;
+    border: 1px solid rgba(14,165,233,0.2);
+    border-top: 2px solid #0ea5e9;
+    position: relative; overflow: hidden;
+    box-shadow: 0 0 30px rgba(14,165,233,0.06), inset 0 1px 0 rgba(14,165,233,0.1);
 }
-.hero-title { font-family:'Space Mono',monospace; font-size:1.4rem; font-weight:700; color:#a5b4fc; letter-spacing:2px; margin:0; }
-.hero-sub   { font-family:'Noto Sans TC',sans-serif; font-size:0.82rem; color:#64748b; letter-spacing:0.5px; margin-top:4px; }
-.hero-time  { font-family:'Space Mono',monospace; font-size:0.82rem; color:#475569; text-align:right; }
-
-/* 側邊欄分頁按鈕 */
-.nav-logo {
-    font-family:'Space Mono',monospace;
-    font-size:0.75rem; letter-spacing:2px; color:#334155;
-    text-transform:uppercase; margin-bottom:16px;
-    padding-bottom:10px; border-bottom:1px solid #141e30;
+.hero::before {
+    content: '';
+    position: absolute; top: 0; left: -100%;
+    width: 60%; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(56,189,248,0.6), transparent);
+    animation: scanline 4s linear infinite;
+}
+@keyframes scanline { to { left: 200%; } }
+.hero-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.3rem; font-weight: 700; color: #e0f2fe;
+    letter-spacing: 3px; margin: 0;
+    text-shadow: 0 0 20px rgba(56,189,248,0.4);
+}
+.hero-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem; color: #38bdf8;
+    letter-spacing: 2px; margin-top: 5px;
+    opacity: 0.7;
+}
+.hero-time {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem; color: #0ea5e9;
+    text-align: right; line-height: 1.8;
+    text-shadow: 0 0 8px rgba(14,165,233,0.4);
 }
 
-/* 迷你卡片 */
+/* ══ 分類標題 ════════════════════════════════════════════ */
+.cat-bar {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem; font-weight: 400;
+    letter-spacing: 3px; text-transform: uppercase;
+    padding: 6px 0 8px 14px;
+    border-left: 2px solid;
+    margin: 10px 0 12px;
+    position: relative;
+}
+.cat-bar::after {
+    content: '';
+    position: absolute; bottom: 0; left: 14px; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, currentColor, transparent);
+    opacity: 0.15;
+}
+
+/* ══ 迷你卡片 ════════════════════════════════════════════ */
 .mini-card {
-    background: #0d1423;
-    border: 1px solid #1a2540;
-    border-radius: 10px;
-    padding: 10px 12px 6px;
+    background: rgba(8,18,38,0.8);
+    border: 1px solid rgba(30,58,96,0.8);
+    border-top: 1px solid rgba(14,165,233,0.1);
+    border-radius: 4px;
+    padding: 11px 13px 8px;
     position: relative;
     overflow: hidden;
     height: 100%;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
 }
+.mini-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(14,165,233,0.3), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.mini-card:hover { border-color: rgba(14,165,233,0.35); background: rgba(10,22,46,0.9); }
+.mini-card:hover::before { opacity: 1; }
 .mini-card.active {
-    border-color: #818cf8 !important;
-    background: #151e38 !important;
-    box-shadow: 0 0 0 2px rgba(129,140,248,0.15), 0 4px 20px rgba(79,70,229,0.15);
+    border-color: #0ea5e9 !important;
+    background: rgba(14,165,233,0.07) !important;
+    box-shadow: 0 0 0 1px rgba(14,165,233,0.2), 0 0 20px rgba(14,165,233,0.08);
+}
+.mini-card.active::before { opacity: 1; }
+
+/* 卡片角標裝飾 */
+.mini-card::after {
+    content: '';
+    position: absolute; top: 0; right: 0;
+    border-style: solid;
+    border-width: 0 8px 8px 0;
+    border-color: transparent rgba(14,165,233,0.15) transparent transparent;
 }
 .mini-card.active::after {
-    content:'▼';
-    position:absolute; bottom:-2px; left:50%; transform:translateX(-50%);
-    font-size:0.5rem; color:#818cf8; line-height:1;
-}
-.mc-name  { font-family:'Noto Sans TC',sans-serif; font-size:0.78rem; font-weight:500; color:#94a3b8; letter-spacing:0.5px; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.mc-price { font-family:'Space Mono',monospace; font-size:1.05rem; font-weight:700; color:#f1f5f9; margin-bottom:3px; }
-.mc-up    { font-family:'Space Mono',monospace; font-size:0.78rem; font-weight:600; color:#f87171; }
-.mc-down  { font-family:'Space Mono',monospace; font-size:0.78rem; font-weight:600; color:#34d399; }
-.mc-flat  { font-family:'Space Mono',monospace; font-size:0.78rem; color:#4b5563; }
-
-/* 分類列標題 */
-.cat-bar {
-    font-family:'Noto Sans TC',sans-serif;
-    font-size:0.82rem; font-weight:700; letter-spacing:2px;
-    padding: 6px 0 8px 12px;
-    border-left: 3px solid;
-    margin: 8px 0 12px;
+    border-color: transparent rgba(14,165,233,0.5) transparent transparent;
 }
 
-/* 展開按鈕：與卡片融合，整體可點感 */
+.mc-name  {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 0.78rem; font-weight: 400;
+    color: #7090b0; letter-spacing: 0.5px;
+    margin-bottom: 5px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mc-price {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.08rem; font-weight: 400;
+    color: #e2eeff; margin-bottom: 4px;
+    letter-spacing: 0.5px;
+}
+.mc-up   { font-family:'Share Tech Mono',monospace; font-size:0.8rem; color:#f87171; letter-spacing:0.5px; }
+.mc-down { font-family:'Share Tech Mono',monospace; font-size:0.8rem; color:#34d399; letter-spacing:0.5px; }
+.mc-flat { font-family:'Share Tech Mono',monospace; font-size:0.8rem; color:#334155; }
+
+/* ══ 按鈕 ════════════════════════════════════════════════ */
 .stButton > button {
-    background: #111d2e !important;
-    color: #94a3b8 !important;
-    border: 1px solid #1e2d42 !important;
+    background: rgba(5,12,28,0.9) !important;
+    color: #4d7a9e !important;
+    border: 1px solid rgba(14,165,233,0.12) !important;
     border-top: none !important;
-    border-radius: 0 0 10px 10px !important;
-    font-family: 'Noto Sans TC', sans-serif !important;
-    font-size: 0.78rem !important;
-    font-weight: 500 !important;
+    border-radius: 0 0 4px 4px !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    font-size: 0.76rem !important;
+    letter-spacing: 1px !important;
     padding: 5px 6px !important;
     margin-top: -1px !important;
     transition: all 0.15s !important;
     width: 100% !important;
-    letter-spacing: 0.5px;
+    text-transform: uppercase !important;
 }
 .stButton > button:hover {
-    background: #1a2d48 !important;
-    border-color: #4f46e5 !important;
-    color: #a5b4fc !important;
-}
-/* 刪除按鈕：紅底警示 */
-button[kind="secondary"].del-btn,
-div[data-testid*="wl_del"] > button,
-.del-btn-wrap button {
-    background: #3b0d0d !important;
-    color: #fca5a5 !important;
-    border: 1px solid #7f1d1d !important;
-    border-radius: 6px !important;
-    font-size: 0.78rem !important;
-    font-weight: 600 !important;
-}
-div[data-testid*="wl_del"] > button:hover {
-    background: #7f1d1d !important;
-    color: #fff !important;
-    border-color: #ef4444 !important;
+    background: rgba(14,165,233,0.1) !important;
+    border-color: rgba(14,165,233,0.4) !important;
+    color: #38bdf8 !important;
+    text-shadow: 0 0 8px rgba(56,189,248,0.4) !important;
 }
 
-/* Tab 覆寫 */
-.stTabs [data-baseweb="tab-list"] { background:#0a0f1e; border-radius:8px 8px 0 0; gap:2px; padding:4px 4px 0; border-bottom:1px solid #1e293b; }
-.stTabs [data-baseweb="tab"] { background:#0d1423; color:#94a3b8; border-radius:6px 6px 0 0 !important; font-family:'Noto Sans TC',sans-serif; font-size:0.85rem; font-weight:500; padding:7px 16px; border:1px solid #1a2540; border-bottom:none; }
-.stTabs [aria-selected="true"] { background:#1a1f35 !important; color:#a5b4fc !important; border-color:#4f46e5 !important; font-weight:700 !important; }
-.stTabs [data-baseweb="tab-panel"] { background:#0a0f1e; border:1px solid #1e293b; border-top:none; border-radius:0 0 8px 8px; padding:18px; }
-
-/* Streamlit 原生元件文字放大 */
-.stSelectbox label, .stTextInput label { font-size:0.85rem !important; color:#94a3b8 !important; }
-.stSelectbox > div > div, .stTextInput > div > div > input {
-    font-size:0.9rem !important; background:#0d1423 !important;
-    border-color:#1e293b !important; color:#e2e8f0 !important;
-}
-div[data-testid="stMarkdownContainer"] p { font-size:0.9rem; line-height:1.7; color:#cbd5e1; }
-
-/* 刪除按鈕 (type=primary 覆寫成紅底) */
-.stButton > button[kind="primaryFormSubmit"],
+/* 刪除按鈕 */
 .stButton > button[data-testid="baseButton-primary"] {
-    background: #3b0d0d !important;
-    color: #fca5a5 !important;
-    border: 1px solid #7f1d1d !important;
-    border-radius: 6px !important;
-    border-top: 1px solid #7f1d1d !important;
-    font-size: 0.78rem !important;
-    font-weight: 600 !important;
+    background: rgba(30,5,5,0.9) !important;
+    color: #f87171 !important;
+    border: 1px solid rgba(239,68,68,0.25) !important;
+    border-top: 1px solid rgba(239,68,68,0.25) !important;
+    border-radius: 4px !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    font-size: 0.76rem !important;
+    letter-spacing: 1px !important;
     margin-top: 4px !important;
-    padding: 4px 6px !important;
+    padding: 5px 6px !important;
+    text-transform: uppercase !important;
 }
 .stButton > button[data-testid="baseButton-primary"]:hover {
-    background: #7f1d1d !important;
-    color: #fff !important;
+    background: rgba(127,29,29,0.8) !important;
+    color: #fecaca !important;
     border-color: #ef4444 !important;
+    box-shadow: 0 0 10px rgba(239,68,68,0.2) !important;
 }
 
-::-webkit-scrollbar { width:5px; height:5px; }
-::-webkit-scrollbar-track { background:#070b14; }
-::-webkit-scrollbar-thumb { background:#1e293b; border-radius:3px; }
+/* ══ Tab ═════════════════════════════════════════════════ */
+.stTabs [data-baseweb="tab-list"] {
+    background: rgba(2,5,16,0.8);
+    border-radius: 4px 4px 0 0; gap: 1px;
+    padding: 4px 4px 0;
+    border-bottom: 1px solid rgba(14,165,233,0.15);
+}
+.stTabs [data-baseweb="tab"] {
+    background: rgba(5,12,28,0.9);
+    color: #4d7a9e;
+    border-radius: 3px 3px 0 0 !important;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem; letter-spacing: 1px; text-transform: uppercase;
+    padding: 7px 16px;
+    border: 1px solid rgba(14,165,233,0.1); border-bottom: none;
+}
+.stTabs [aria-selected="true"] {
+    background: rgba(14,165,233,0.08) !important;
+    color: #38bdf8 !important;
+    border-color: rgba(14,165,233,0.35) !important;
+    text-shadow: 0 0 10px rgba(56,189,248,0.4) !important;
+}
+.stTabs [data-baseweb="tab-panel"] {
+    background: rgba(3,8,22,0.9);
+    border: 1px solid rgba(14,165,233,0.12);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    padding: 18px;
+}
+
+/* ══ Streamlit 原生元件 ══════════════════════════════════ */
+.stSelectbox label, .stTextInput label {
+    font-size: 0.82rem !important;
+    color: #4d7a9e !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    letter-spacing: 1px !important;
+}
+.stSelectbox > div > div, .stTextInput > div > div > input {
+    font-size: 0.9rem !important;
+    background: rgba(5,12,28,0.9) !important;
+    border-color: rgba(14,165,233,0.2) !important;
+    color: #ccd6f6 !important;
+    border-radius: 4px !important;
+    font-family: 'Share Tech Mono', monospace !important;
+}
+.stSelectbox > div > div:hover, .stTextInput > div > div:hover {
+    border-color: rgba(14,165,233,0.5) !important;
+}
+div[data-testid="stMarkdownContainer"] p {
+    font-size: 0.9rem; line-height: 1.75; color: #8899aa;
+}
+
+/* ══ 分隔線 ══════════════════════════════════════════════ */
+hr { border-color: rgba(14,165,233,0.1) !important; }
+
+/* ══ Info / Warning 元件 ═════════════════════════════════ */
+div[data-testid="stInfo"] {
+    background: rgba(14,165,233,0.05) !important;
+    border: 1px solid rgba(14,165,233,0.2) !important;
+    border-left: 3px solid #0ea5e9 !important;
+    border-radius: 4px !important;
+    color: #7ab8d4 !important;
+}
+div[data-testid="stWarning"] {
+    background: rgba(251,191,36,0.05) !important;
+    border: 1px solid rgba(251,191,36,0.2) !important;
+    border-left: 3px solid #fbbf24 !important;
+    border-radius: 4px !important;
+}
+
+/* ══ 捲動條 ══════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #020510; }
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(#0ea5e9, #6366f1);
+    border-radius: 2px;
+}
+
+/* ══ 掃描線底紋（整體氛圍） ══════════════════════════════ */
+.stApp::after {
+    content: '';
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(14,165,233,0.008) 2px,
+        rgba(14,165,233,0.008) 4px
+    );
+    pointer-events: none; z-index: 0;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -652,8 +797,8 @@ if cur_page == STOCK_PAGE_KEY:
 
     stk_df = get_history(stk_sym, st.session_state.stock_period)
 
-    CHART_BG2 = "#09101f"
-    GRID_CLR2 = "#141e30"
+    CHART_BG2 = "#020812"
+    GRID_CLR2 = "#0a1628"
 
     if not stk_df.empty:
         s_today_tab, s_chart_tab, s_news_tab = st.tabs(["⚡ 今日走勢", "📊 圖表分析", "📰 相關新聞"])
@@ -934,8 +1079,8 @@ else:
     detail_period = st.session_state.detail_period
     df = get_history(sel_sym, detail_period)
     
-    CHART_BG = "#09101f"
-    GRID_CLR = "#141e30"
+    CHART_BG = "#020812"
+    GRID_CLR = "#0a1628"
     
     if not df.empty:
         today_tab, chart_tab, news_tab = st.tabs(["⚡ 今日走勢", "📊 圖表分析", "📰 相關新聞"])
