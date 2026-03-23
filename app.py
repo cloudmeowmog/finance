@@ -95,8 +95,8 @@ section[data-testid="stSidebar"] {
     color: #f1f5f9;
     margin: 4px 0 2px;
 }
-.metric-delta-up   { color: #34d399; font-size: 0.85rem; font-family: 'Space Mono', monospace; }
-.metric-delta-down { color: #f87171; font-size: 0.85rem; font-family: 'Space Mono', monospace; }
+.metric-delta-up   { color: #f87171; font-size: 0.85rem; font-family: 'Space Mono', monospace; }
+.metric-delta-down { color: #34d399; font-size: 0.85rem; font-family: 'Space Mono', monospace; }
 
 /* 區塊標題 */
 .section-title {
@@ -234,12 +234,12 @@ def candlestick_chart(df: pd.DataFrame, title: str) -> go.Figure:
         x=df.index,
         open=df["Open"], high=df["High"],
         low=df["Low"],  close=df["Close"],
-        increasing_line_color="#34d399",
-        decreasing_line_color="#f87171",
+        increasing_line_color="#f87171",
+        decreasing_line_color="#34d399",
         name="K線",
     ))
     # 成交量
-    colors = ["#34d399" if c >= o else "#f87171"
+    colors = ["#f87171" if c >= o else "#34d399"
               for c, o in zip(df["Close"], df["Open"])]
     fig.add_trace(go.Bar(
         x=df.index, y=df["Volume"],
@@ -533,7 +533,7 @@ with tab4:
 
         # 顏色格式化
         def color_delta(val):
-            color = "#34d399" if val > 0 else ("#f87171" if val < 0 else "#94a3b8")
+            color = "#f87171" if val > 0 else ("#34d399" if val < 0 else "#94a3b8")
             return f"color: {color}"
 
         styled = df_watch.style \
@@ -544,7 +544,7 @@ with tab4:
 
         # 漲跌長條圖
         st.markdown('<div class="section-title">漲跌幅比較</div>', unsafe_allow_html=True)
-        colors = ["#34d399" if v >= 0 else "#f87171" for v in df_watch["漲跌幅 %"]]
+        colors = ["#f87171" if v >= 0 else "#34d399" for v in df_watch["漲跌幅 %"]]
         fig_bar = go.Figure(go.Bar(
             x=df_watch["代號"], y=df_watch["漲跌幅 %"],
             marker_color=colors,
