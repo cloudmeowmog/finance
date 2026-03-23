@@ -360,6 +360,7 @@ with tab1:
 
     INDICES = {
         "台灣加權": "^TWII",
+        "台灣夜盤": "TWN=F",
         "S&P 500":  "^GSPC",
         "NASDAQ":   "^IXIC",
         "道瓊":     "^DJI",
@@ -376,13 +377,58 @@ with tab1:
         arrow = "▲" if q["pct"] >= 0 else "▼"
         delta_cls = "metric-delta-up" if q["pct"] >= 0 else "metric-delta-down"
         price_fmt = f"{q['price']:,.2f}" if q['price'] < 100000 else f"{q['price']:,.0f}"
+        # 台灣夜盤加上特殊標籤
+        night_badge = ' <span style="font-size:0.6rem;background:#1e1b4b;color:#a5b4fc;padding:2px 6px;border-radius:4px;vertical-align:middle;">夜盤</span>' if name == "台灣夜盤" else ""
         col.markdown(f"""
         <div class="metric-card">
-          <div class="metric-name">{name}</div>
+          <div class="metric-name">{name}{night_badge}</div>
           <div class="metric-value">{price_fmt}</div>
           <div class="{delta_cls}">{arrow} {q['change']:+.2f} ({q['pct']:+.2f}%)</div>
         </div>
         """, unsafe_allow_html=True)
+
+    # ── 虛擬貨幣 ──────────────────────────────────────────
+    st.markdown('<div class="section-title">🪙 虛擬貨幣（對美元）</div>', unsafe_allow_html=True)
+
+    CRYPTO = {
+        "比特幣 BTC": "BTC-USD",
+        "以太幣 ETH": "ETH-USD",
+        "泰達幣 USDT": "USDT-USD",
+        "USDC":        "USDC-USD",
+    }
+
+    ccols = st.columns(4)
+    for col, (name, sym) in zip(ccols, CRYPTO.items()):
+        q = get_quote(sym)
+        arrow = "▲" if q["pct"] >= 0 else "▼"
+        delta_cls = "metric-delta-up" if q["pct"] >= 0 else "metric-delta-down"
+        # 穩定幣顯示小數4位，BTC/ETH顯示整數或2位
+        if sym in ("USDT-USD", "USDC-USD"):
+            price_fmt = f"{q['price']:.4f}"
+        elif q["price"] > 1000:
+            price_fmt = f"{q['price']:,.0f}"
+        else:
+            price_fmt = f"{q['price']:,.2f}"
+        col.markdown(f"""
+        <div class="metric-card" style="border-color:#1e3a5f;">
+          <div class="metric-name">{name}</div>
+          <div class="metric-value" style="font-size:1.3rem;">{price_fmt}</div>
+          <div class="{delta_cls}">{arrow} {q['pct']:+.2f}%</div>
+          <div style="font-size:0.7rem;color:#4b5563;font-family:Space Mono;margin-top:2px;">USD</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # BTC & ETH 走勢圖
+    st.markdown('<div class="section-title">BTC / ETH 走勢</div>', unsafe_allow_html=True)
+    cr1, cr2 = st.columns(2)
+    btc_df = get_history("BTC-USD", "3mo")
+    eth_df = get_history("ETH-USD", "3mo")
+    if not btc_df.empty:
+        cr1.plotly_chart(line_chart(btc_df, "Close", "比特幣 BTC · 近 3 個月", "#f59e0b"),
+                         use_container_width=True)
+    if not eth_df.empty:
+        cr2.plotly_chart(line_chart(eth_df, "Close", "以太幣 ETH · 近 3 個月", "#818cf8"),
+                         use_container_width=True)
 
     # 主市場走勢圖
     st.markdown('<div class="section-title">主要市場走勢</div>', unsafe_allow_html=True)
