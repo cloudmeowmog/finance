@@ -266,6 +266,13 @@ def candlestick_chart(df: pd.DataFrame, title: str) -> go.Figure:
     return fig
 
 
+def hex_to_rgba(hex_color: str, alpha: float = 0.08) -> str:
+    """Convert #rrggbb to rgba(r,g,b,alpha)"""
+    h = hex_color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"rgba({r},{g},{b},{alpha})"
+
+
 def line_chart(df: pd.DataFrame, col: str, title: str, color: str = "#818cf8") -> go.Figure:
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -273,7 +280,7 @@ def line_chart(df: pd.DataFrame, col: str, title: str, color: str = "#818cf8") -
         mode="lines",
         line=dict(color=color, width=2),
         fill="tozeroy",
-        fillcolor=color.replace(")", ",0.08)").replace("rgb", "rgba") if color.startswith("rgb") else color + "15",
+        fillcolor=hex_to_rgba(color, 0.08),
         name=col,
     ))
     fig.update_layout(
