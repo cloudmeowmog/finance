@@ -326,6 +326,31 @@ PAGES = {
     },
 }
 
+# 個股分頁識別鍵
+STOCK_PAGE_KEY = "📋 個股查詢"
+
+# 各市場熱門股票預設清單
+MARKET_PRESETS = {
+    "🇹🇼 台股": [
+        ("台積電",   "2330.TW"), ("鴻海",     "2317.TW"), ("聯發科",   "2454.TW"),
+        ("廣達",     "2382.TW"), ("富邦金",   "2881.TW"), ("國泰金",   "2882.TW"),
+        ("中華電",   "2412.TW"), ("台塑",     "1301.TW"), ("南亞",     "1303.TW"),
+        ("統一",     "1216.TW"), ("台達電",   "2308.TW"), ("日月光投", "3711.TW"),
+    ],
+    "🇺🇸 美股": [
+        ("Apple",      "AAPL"),   ("NVIDIA",     "NVDA"),   ("Microsoft",  "MSFT"),
+        ("Amazon",     "AMZN"),   ("Tesla",      "TSLA"),   ("Meta",       "META"),
+        ("Alphabet",   "GOOGL"),  ("Broadcom",   "AVGO"),   ("TSMC ADR",   "TSM"),
+        ("Netflix",    "NFLX"),   ("AMD",        "AMD"),    ("Intel",      "INTC"),
+    ],
+    "🇯🇵 日股": [
+        ("Toyota",     "7203.T"), ("Sony",       "6758.T"), ("SoftBank",   "9984.T"),
+        ("Keyence",    "6861.T"), ("Fanuc",      "6954.T"), ("Nintendo",   "7974.T"),
+        ("Fast Retailing","9983.T"),("Mitsubishi","8058.T"), ("Recruit",   "6098.T"),
+        ("Shin-Etsu",  "4063.T"), ("Hitachi",    "6501.T"), ("Honda",      "7267.T"),
+    ],
+}
+
 
 # ══════════════════════════════════════════════════════════
 # SESSION STATE
@@ -337,6 +362,10 @@ if "sel_sym"       not in st.session_state: st.session_state.sel_sym       = PAG
 if "sel_name"      not in st.session_state: st.session_state.sel_name      = PAGES[page_keys[0]]["items"][0][0]
 if "sel_kind"      not in st.session_state: st.session_state.sel_kind      = PAGES[page_keys[0]]["items"][0][2]
 if "detail_period" not in st.session_state: st.session_state.detail_period = "1y"
+if "stock_sym"     not in st.session_state: st.session_state.stock_sym     = "2330.TW"
+if "stock_name"    not in st.session_state: st.session_state.stock_name    = "台積電"
+if "stock_market"  not in st.session_state: st.session_state.stock_market  = "🇹🇼 台股"
+if "stock_period"  not in st.session_state: st.session_state.stock_period  = "1y"
 
 
 # ══════════════════════════════════════════════════════════
@@ -362,6 +391,11 @@ with st.sidebar:
             st.session_state.sel_kind = first[2]
             st.rerun()
 
+    # 個股查詢分頁按鈕
+    if st.button(f"📋  個股查詢", key=f"nav_{STOCK_PAGE_KEY}", use_container_width=True):
+        st.session_state.page = STOCK_PAGE_KEY
+        st.rerun()
+
     st.markdown("---")
 
     if st.button("🔄 更新資料", use_container_width=True):
@@ -381,378 +415,683 @@ with st.sidebar:
 # 主內容區
 # ══════════════════════════════════════════════════════════
 
-cur_page  = st.session_state.page
-page_data = PAGES[cur_page]
-accent    = page_data["color"]
-items     = page_data["items"]
+cur_page = st.session_state.page
 
-# Hero
-st.markdown(f"""
-<div class="hero">
-  <div>
-    <div class="hero-title">{page_data['icon']} {page_data['label']}</div>
-    <div class="hero-sub">{page_data['subtitle']}</div>
-  </div>
-  <div class="hero-time">
-    {datetime.now().strftime('%Y.%m.%d')}<br>
-    {datetime.now().strftime('%H:%M')} TST
-  </div>
-</div>
-""", unsafe_allow_html=True)
+# ── 個股查詢分頁（獨立邏輯）──────────────────────────────
+if cur_page == STOCK_PAGE_KEY:
 
+    accent = "#e879f9"
 
-# ── 迷你卡片網格（每列 6 個）──────────────────────────────
-COLS_PER_ROW = 6
+    st.markdown(f"""
+    <div class="hero">
+      <div>
+        <div class="hero-title">📋 個股查詢</div>
+        <div class="hero-sub">台股 · 美股 · 日股 自選個股走勢</div>
+      </div>
+      <div class="hero-time">
+        {datetime.now().strftime('%Y.%m.%d')}<br>
+        {datetime.now().strftime('%H:%M')} TST
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-for row_start in range(0, len(items), COLS_PER_ROW):
-    row_items = items[row_start : row_start + COLS_PER_ROW]
-    padded = row_items + [None] * (COLS_PER_ROW - len(row_items))
-    cols = st.columns(COLS_PER_ROW)
+    # ── 市場切換 + 搜尋列 ────────────────────────────────
+    src1, src2 = st.columns([2, 3])
 
-    for col, item in zip(cols, padded):
-        if item is None:
-            col.empty()
-            continue
+    with src1:
+        market_choice = st.selectbox(
+            "選擇市場",
+            list(MARKET_PRESETS.keys()),
+            index=list(MARKET_PRESETS.keys()).index(st.session_state.stock_market),
+            key="stock_market_sel",
+        )
+        if market_choice != st.session_state.stock_market:
+            st.session_state.stock_market = market_choice
 
-        name, sym, kind = item
-        q = fetch_q(sym, kind)
-        price_str = fmt_price(q["price"], kind, name)
-        arrow  = "▲" if q["pct"] >= 0 else "▼"
-        d_cls  = "mc-up" if q["pct"] > 0 else ("mc-down" if q["pct"] < 0 else "mc-flat")
-        is_sel = (st.session_state.sel_sym == sym)
-        card_cls = "mini-card active" if is_sel else "mini-card"
-        border_style = f"border-color:{accent};" if is_sel else ""
-        spark = mini_sparkline(sym, accent if is_sel else "#1e3a5f")
+    with src2:
+        # 決定代號後綴提示
+        suffix_hint = {"🇹🇼 台股": "例：2330.TW", "🇺🇸 美股": "例：AAPL", "🇯🇵 日股": "例：7203.T"}
+        custom_input = st.text_input(
+            "直接輸入代號",
+            placeholder=suffix_hint.get(st.session_state.stock_market, "輸入代號"),
+            key="stock_custom_input",
+        )
+        if custom_input:
+            sym_input = custom_input.strip().upper()
+            if st.button("🔍 查詢", key="stock_search_btn"):
+                q_test = get_quote(sym_input)
+                if q_test["price"] > 0:
+                    st.session_state.stock_sym  = sym_input
+                    st.session_state.stock_name = sym_input
+                    st.rerun()
+                else:
+                    st.error(f"找不到 `{sym_input}`，請確認代號格式")
 
-        col.markdown(f"""
-        <div class="{card_cls}" style="{border_style}">
-          <div class="mc-name">{name}</div>
-          <div class="mc-price">{price_str}</div>
-          <div class="{d_cls}">{arrow} {q['pct']:+.2f}%</div>
-          <div style="margin-top:4px;">{spark}</div>
-        </div>
-        """, unsafe_allow_html=True)
+    # ── 預設熱門股票卡片 ──────────────────────────────────
+    st.markdown(
+        f'<div class="cat-bar" style="border-color:{accent};color:{accent};">'
+        f'{st.session_state.stock_market} 熱門個股</div>',
+        unsafe_allow_html=True,
+    )
 
-        if col.button("▼ 展開", key=f"sel_{sym}"):
-            st.session_state.sel_sym  = sym
-            st.session_state.sel_name = name
-            st.session_state.sel_kind = kind
-            st.rerun()
+    preset_items = MARKET_PRESETS[st.session_state.stock_market]
+    SCOLS = 6
+    for row_s in range(0, len(preset_items), SCOLS):
+        row_it = preset_items[row_s:row_s+SCOLS]
+        padded = row_it + [None] * (SCOLS - len(row_it))
+        scols  = st.columns(SCOLS)
+        for col, item in zip(scols, padded):
+            if item is None:
+                col.empty()
+                continue
+            s_name, s_sym = item
+            sq = get_quote(s_sym)
+            sp_str = fmt_price(sq["price"], "stock", s_name)
+            s_arrow = "▲" if sq["pct"] >= 0 else "▼"
+            s_dcls  = "mc-up" if sq["pct"] > 0 else ("mc-down" if sq["pct"] < 0 else "mc-flat")
+            is_sel  = (st.session_state.stock_sym == s_sym)
+            s_card  = "mini-card active" if is_sel else "mini-card"
+            s_bdr   = f"border-color:{accent};" if is_sel else ""
+            spark   = mini_sparkline(s_sym, accent if is_sel else "#1e3a5f")
 
+            col.markdown(f"""
+            <div class="{s_card}" style="{s_bdr}">
+              <div class="mc-name">{s_name}</div>
+              <div class="mc-price">{sp_str}</div>
+              <div class="{s_dcls}">{s_arrow} {sq['pct']:+.2f}%</div>
+              <div style="margin-top:4px;">{spark}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-# ══════════════════════════════════════════════════════════
-# 詳細圖表區
-# ══════════════════════════════════════════════════════════
+            if col.button("▼ 展開", key=f"stock_sel_{s_sym}"):
+                st.session_state.stock_sym  = s_sym
+                st.session_state.stock_name = s_name
+                st.rerun()
 
-sel_sym  = st.session_state.sel_sym
-sel_name = st.session_state.sel_name
-sel_kind = st.session_state.sel_kind
-q = fetch_q(sel_sym, sel_kind)
+    # ── 個股詳細圖表 ──────────────────────────────────────
+    stk_sym  = st.session_state.stock_sym
+    stk_name = st.session_state.stock_name
+    stk_q    = get_quote(stk_sym)
 
-price_str   = fmt_price(q["price"], sel_kind, sel_name)
-arrow       = "▲" if q["pct"] >= 0 else "▼"
-delta_color = "#f87171" if q["pct"] > 0 else ("#34d399" if q["pct"] < 0 else "#6b7280")
+    stk_price = fmt_price(stk_q["price"], "stock", stk_name)
+    stk_arrow = "▲" if stk_q["pct"] >= 0 else "▼"
+    stk_dclr  = "#f87171" if stk_q["pct"] > 0 else ("#34d399" if stk_q["pct"] < 0 else "#6b7280")
 
-st.markdown('<hr style="border:none;border-top:1px solid #141e30;margin:16px 0 12px;">', unsafe_allow_html=True)
+    st.markdown('<hr style="border:none;border-top:1px solid #141e30;margin:16px 0 12px;">', unsafe_allow_html=True)
 
-# 標題列
-h1, h2 = st.columns([5, 1])
-with h1:
     st.markdown(f"""
     <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;">
       <span style="font-family:Space Mono;font-size:0.9rem;font-weight:700;color:{accent};
             background:{hex_to_rgba(accent,0.1)};padding:3px 10px;border-radius:5px;
-            border:1px solid {hex_to_rgba(accent,0.3)};">{sel_name}</span>
-      <span style="font-family:Space Mono;font-size:1.8rem;font-weight:700;color:#f1f5f9;">{price_str}</span>
-      <span style="font-family:Space Mono;font-size:0.95rem;color:{delta_color};">
-        {arrow} {q['change']:+.4f} &nbsp;({q['pct']:+.2f}%)
+            border:1px solid {hex_to_rgba(accent,0.3)};">{stk_name}</span>
+      <span style="font-family:Space Mono;font-size:0.75rem;color:#475569;">{stk_sym}</span>
+      <span style="font-family:Space Mono;font-size:1.8rem;font-weight:700;color:#f1f5f9;">{stk_price}</span>
+      <span style="font-family:Space Mono;font-size:0.95rem;color:{stk_dclr};">
+        {stk_arrow} {stk_q['change']:+.4f} ({stk_q['pct']:+.2f}%)
       </span>
     </div>
     """, unsafe_allow_html=True)
 
-with h2:
-    pass
+    # 期間選擇
+    stk_period_map = {"1M": "1mo", "3M": "3mo", "6M": "6mo", "1Y": "1y", "2Y": "2y"}
+    sp_cols = st.columns([1,1,1,1,1,8])
+    for pc, (lbl, val) in zip(sp_cols[:5], stk_period_map.items()):
+        if pc.button(lbl, key=f"sp_{val}"):
+            st.session_state.stock_period = val
+            st.rerun()
 
-# 期間選擇
-period_map = {"1M": "1mo", "3M": "3mo", "6M": "6mo", "1Y": "1y", "2Y": "2y"}
-pcols = st.columns([1, 1, 1, 1, 1, 8])
-for pc, (lbl, val) in zip(pcols[:5], period_map.items()):
-    if pc.button(lbl, key=f"dp_{val}"):
-        st.session_state.detail_period = val
-        st.rerun()
+    stk_df = get_history(stk_sym, st.session_state.stock_period)
 
-detail_period = st.session_state.detail_period
-df = get_history(sel_sym, detail_period)
+    CHART_BG2 = "#09101f"
+    GRID_CLR2 = "#141e30"
 
-CHART_BG = "#09101f"
-GRID_CLR = "#141e30"
+    if not stk_df.empty:
+        s_today_tab, s_chart_tab, s_news_tab = st.tabs(["⚡ 今日走勢", "📊 圖表分析", "📰 相關新聞"])
 
-if not df.empty:
-    today_tab, chart_tab, news_tab = st.tabs(["⚡ 今日走勢", "📊 圖表分析", "📰 相關新聞"])
+        # 今日走勢
+        with s_today_tab:
+            stk_intra = get_intraday(stk_sym)
+            if not stk_intra.empty and len(stk_intra) > 1:
+                stk_prev_df = get_history(stk_sym, "5d")
+                stk_prev_close = float(stk_prev_df["Close"].iloc[-2]) if len(stk_prev_df) >= 2 else float(stk_intra["Open"].iloc[0])
+                stk_open   = float(stk_intra["Open"].iloc[0])
+                stk_last   = float(stk_intra["Close"].iloc[-1])
+                stk_ichg   = stk_last - stk_prev_close
+                stk_ipct   = (stk_ichg / stk_prev_close * 100) if stk_prev_close else 0
+                stk_iclr   = "#f87171" if stk_ichg >= 0 else "#34d399"
+                stk_iarrow = "▲" if stk_ichg >= 0 else "▼"
+                stk_high   = float(stk_intra["High"].max())
+                stk_low    = float(stk_intra["Low"].min())
+                stk_vol    = int(stk_intra["Volume"].sum()) if "Volume" in stk_intra else 0
 
-    # ── 今日即時走勢 ──────────────────────────────────────
-    with today_tab:
-        df_intra = get_intraday(sel_sym)
+                ca, cb, cc, cd, ce = st.columns(5)
+                for c, lbl, val in [
+                    (ca, "前收",   fmt_price(stk_prev_close, "stock")),
+                    (cb, "開盤",   fmt_price(stk_open, "stock")),
+                    (cc, "最高",   fmt_price(stk_high, "stock")),
+                    (cd, "最低",   fmt_price(stk_low,  "stock")),
+                    (ce, "成交量", f"{stk_vol:,}" if stk_vol else "—"),
+                ]:
+                    c.markdown(f"""
+                    <div style="background:#0d1423;border:1px solid #1a2540;border-radius:8px;
+                         padding:10px 14px;margin-bottom:12px;">
+                      <div style="font-family:Space Mono;font-size:0.6rem;color:#475569;
+                           letter-spacing:1px;margin-bottom:4px;">{lbl}</div>
+                      <div style="font-family:Space Mono;font-size:1rem;font-weight:700;
+                           color:#f1f5f9;">{val}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-        if not df_intra.empty and len(df_intra) > 1:
-            # ── 取得前一交易日收盤作為走勢起點 ──────────────
-            df_prev = get_history(sel_sym, "5d")
-            if not df_prev.empty and len(df_prev) >= 2:
-                prev_close = float(df_prev["Close"].iloc[-2])
-            else:
-                prev_close = float(df_intra["Open"].iloc[0])
+                stk_prev_ts = stk_intra.index[0] - pd.Timedelta(minutes=5)
+                stk_anchor  = pd.DataFrame(
+                    {"Open": stk_prev_close, "High": stk_prev_close,
+                     "Low": stk_prev_close, "Close": stk_prev_close, "Volume": 0},
+                    index=[stk_prev_ts],
+                )
+                stk_plot = pd.concat([stk_anchor, stk_intra])
+                stk_prices = list(stk_plot["Close"].dropna())
+                sy_min = min(stk_prices); sy_max = max(stk_prices)
+                sy_pad = (sy_max - sy_min) * 0.15 if sy_max != sy_min else sy_max * 0.005
+                sy_range = [sy_min - sy_pad, sy_max + sy_pad * 2]
 
-            open_price = float(df_intra["Open"].iloc[0])
-            last_price = float(df_intra["Close"].iloc[-1])
-
-            # 漲跌相對前一日收盤計算
-            intra_chg   = last_price - prev_close
-            intra_pct   = (intra_chg / prev_close * 100) if prev_close else 0
-            intra_color = "#f87171" if intra_chg >= 0 else "#34d399"
-            intra_arrow = "▲" if intra_chg >= 0 else "▼"
-            today_high  = float(df_intra["High"].max())
-            today_low   = float(df_intra["Low"].min())
-            today_vol   = int(df_intra["Volume"].sum()) if "Volume" in df_intra else 0
-
-            # ── 統計小卡（增加前收欄位）────────────────────
-            col_a, col_b, col_c, col_d, col_e = st.columns(5)
-            for c, label, val in [
-                (col_a, "前收",   fmt_price(prev_close, sel_kind, sel_name)),
-                (col_b, "開盤",   fmt_price(open_price, sel_kind, sel_name)),
-                (col_c, "最高",   fmt_price(today_high, sel_kind, sel_name)),
-                (col_d, "最低",   fmt_price(today_low,  sel_kind, sel_name)),
-                (col_e, "成交量", f"{today_vol:,}" if today_vol else "—"),
-            ]:
-                c.markdown(f"""
-                <div style="background:#0d1423;border:1px solid #1a2540;border-radius:8px;
-                     padding:10px 14px;margin-bottom:12px;">
-                  <div style="font-family:Space Mono;font-size:0.6rem;color:#475569;
-                       letter-spacing:1px;margin-bottom:4px;">{label}</div>
-                  <div style="font-family:Space Mono;font-size:1rem;font-weight:700;
-                       color:#f1f5f9;">{val}</div>
+                fig_si = go.Figure()
+                fig_si.add_hline(y=stk_prev_close,
+                    line=dict(color="#475569", width=1, dash="dash"),
+                    annotation_text=f"前收 {fmt_price(stk_prev_close, 'stock')}",
+                    annotation_font=dict(color="#6b7280", size=10, family="Space Mono"),
+                    annotation_position="left")
+                fig_si.add_trace(go.Scatter(
+                    x=stk_plot.index, y=stk_plot["Close"],
+                    mode="lines", line=dict(color=stk_iclr, width=2),
+                    fill="none", name="成交價",
+                    hovertemplate="%{x|%H:%M}<br>%{y:,.2f}<extra></extra>",
+                ))
+                if "Volume" in stk_intra and stk_intra["Volume"].sum() > 0:
+                    sv_c = ["#f87171" if c >= o else "#34d399"
+                            for c, o in zip(stk_intra["Close"], stk_intra["Open"])]
+                    fig_si.add_trace(go.Bar(
+                        x=stk_intra.index, y=stk_intra["Volume"],
+                        marker_color=sv_c, opacity=0.25, name="成交量", yaxis="y2"))
+                fig_si.add_trace(go.Scatter(
+                    x=[stk_intra.index[-1]], y=[stk_last],
+                    mode="markers+text",
+                    marker=dict(color=stk_iclr, size=9, symbol="circle"),
+                    text=[fmt_price(stk_last, "stock")], textposition="top right",
+                    textfont=dict(color=stk_iclr, size=11, family="Space Mono"),
+                    name="最新", showlegend=False))
+                fig_si.update_layout(
+                    paper_bgcolor=CHART_BG2, plot_bgcolor=CHART_BG2,
+                    font=dict(color="#94a3b8", family="Space Mono", size=11),
+                    xaxis=dict(gridcolor=GRID_CLR2, tickformat="%H:%M", rangeslider=dict(visible=False)),
+                    yaxis=dict(gridcolor=GRID_CLR2, side="right", range=sy_range, tickformat=",.2f"),
+                    yaxis2=dict(overlaying="y", side="left", showgrid=False, showticklabels=False,
+                                range=[0, stk_intra["Volume"].max()*8] if stk_vol else [0,1]),
+                    legend=dict(orientation="h", y=1.06, font=dict(size=10, color="#6b7280"), bgcolor="rgba(0,0,0,0)"),
+                    margin=dict(l=0, r=80, t=28, b=10), height=400, hovermode="x unified",
+                )
+                st.plotly_chart(fig_si, use_container_width=True)
+                st.markdown(f"""
+                <div style="display:flex;align-items:center;gap:16px;padding:6px 4px;flex-wrap:wrap;">
+                  <span style="font-family:Space Mono;font-size:0.7rem;color:#475569;">今日區間</span>
+                  <span style="font-family:Space Mono;font-size:0.8rem;color:#34d399;">▼ {fmt_price(stk_low,"stock")}</span>
+                  <span style="font-family:Space Mono;font-size:0.7rem;color:#374151;">—</span>
+                  <span style="font-family:Space Mono;font-size:0.8rem;color:#f87171;">▲ {fmt_price(stk_high,"stock")}</span>
+                  <span style="font-family:Space Mono;font-size:0.75rem;color:{stk_iclr};margin-left:12px;">
+                    {stk_iarrow} 較前收 {stk_ichg:+.4f} ({stk_ipct:+.2f}%)
+                  </span>
                 </div>
                 """, unsafe_allow_html=True)
+            else:
+                st.info("⏰ 目前非交易時間，或尚無今日盤中資料。")
 
-            # ── 走勢圖：前收起點 → 今日分鐘線 ─────────────
-            # 在盤中資料前插入前一日收盤點，讓折線從前收出發
-            prev_ts = df_intra.index[0] - pd.Timedelta(minutes=5)
-            anchor_row = pd.DataFrame(
-                {"Open": prev_close, "High": prev_close,
-                 "Low": prev_close, "Close": prev_close, "Volume": 0},
-                index=[prev_ts],
-            )
-            df_plot = pd.concat([anchor_row, df_intra])
-
-            fig_intra = go.Figure()
-
-            # 前收基準線（實線，帶標籤）
-            fig_intra.add_hline(
-                y=prev_close,
-                line=dict(color="#475569", width=1, dash="dash"),
-                annotation_text=f"前收 {fmt_price(prev_close, sel_kind)}",
-                annotation_font=dict(color="#6b7280", size=10, family="Space Mono"),
-                annotation_position="left",
-            )
-
-            # 今日開盤參考線（點線）
-            if abs(open_price - prev_close) / prev_close > 0.001:
-                fig_intra.add_hline(
-                    y=open_price,
-                    line=dict(color="#334155", width=1, dash="dot"),
-                    annotation_text=f"開盤 {fmt_price(open_price, sel_kind)}",
-                    annotation_font=dict(color="#475569", size=9, family="Space Mono"),
-                    annotation_position="left",
-                )
-
-            # ── 計算 Y 軸範圍：以前收為中心，加上緩衝 ────
-            line_color = intra_color
-            all_prices = list(df_plot["Close"].dropna())
-            y_min = min(all_prices)
-            y_max = max(all_prices)
-            y_pad = (y_max - y_min) * 0.15 if y_max != y_min else y_max * 0.005
-            y_range = [y_min - y_pad, y_max + y_pad * 2]   # 上方多留空間放標籤
-
-            # 走勢面積線（從前收起點開始，fill 到 y_min 而非 0）
-            fig_intra.add_trace(go.Scatter(
-                x=df_plot.index,
-                y=df_plot["Close"],
-                mode="lines",
-                line=dict(color=line_color, width=2),
-                fill="none",
-                name="成交價",
-                hovertemplate="%{x|%H:%M}<br>%{y:,.2f}<extra></extra>",
+        # 圖表分析
+        with s_chart_tab:
+            stk_df2 = stk_df.copy()
+            stk_df2["MA5"]   = stk_df2["Close"].rolling(5).mean()
+            stk_df2["MA20"]  = stk_df2["Close"].rolling(20).mean()
+            stk_df2["MA60"]  = stk_df2["Close"].rolling(60).mean()
+            stk_df2["MA240"] = stk_df2["Close"].rolling(240).mean()
+            fig_s = go.Figure()
+            fig_s.add_trace(go.Candlestick(
+                x=stk_df2.index,
+                open=stk_df2["Open"], high=stk_df2["High"],
+                low=stk_df2["Low"],   close=stk_df2["Close"],
+                increasing_line_color="#f87171", increasing_fillcolor="#f87171",
+                decreasing_line_color="#34d399", decreasing_fillcolor="#34d399",
+                name="K線",
             ))
-
-            # 成交量（獨立子圖，不影響主圖 Y 軸）
-            has_vol = "Volume" in df_intra and df_intra["Volume"].sum() > 0
-            if has_vol:
-                vol_c = ["#f87171" if c >= o else "#34d399"
-                         for c, o in zip(df_intra["Close"], df_intra["Open"])]
-                fig_intra.add_trace(go.Bar(
-                    x=df_intra.index, y=df_intra["Volume"],
-                    marker_color=vol_c, opacity=0.28,
-                    name="成交量", yaxis="y2",
-                ))
-
-            # 最新價格標記
-            fig_intra.add_trace(go.Scatter(
-                x=[df_intra.index[-1]],
-                y=[last_price],
-                mode="markers+text",
-                marker=dict(color=line_color, size=9, symbol="circle",
-                            line=dict(color="#070b14", width=1)),
-                text=[fmt_price(last_price, sel_kind, sel_name)],
-                textposition="top right",
-                textfont=dict(color=line_color, size=11, family="Space Mono"),
-                name="最新", showlegend=False,
-            ))
-
-            # 前收價右側標籤
-            fig_intra.add_annotation(
-                x=1, xref="paper", y=prev_close,
-                text=f"前收 {fmt_price(prev_close, sel_kind)}",
-                showarrow=False,
-                xanchor="left", yanchor="middle",
-                font=dict(color="#6b7280", size=10, family="Space Mono"),
-                bgcolor="rgba(9,16,31,0.7)",
-            )
-
-            fig_intra.update_layout(
-                paper_bgcolor=CHART_BG, plot_bgcolor=CHART_BG,
+            for cn, clr, lbl in [
+                ("MA5","#facc15","5日線"),("MA20","#60a5fa","月線(20)"),
+                ("MA60","#f97316","季線(60)"),("MA240","#c084fc","年線(240)"),
+            ]:
+                fig_s.add_trace(go.Scatter(x=stk_df2.index, y=stk_df2[cn],
+                    mode="lines", line=dict(color=clr, width=1.4), name=lbl))
+            if "Volume" in stk_df2 and stk_df2["Volume"].sum() > 0:
+                sv2 = ["#f87171" if c >= o else "#34d399"
+                       for c, o in zip(stk_df2["Close"], stk_df2["Open"])]
+                fig_s.add_trace(go.Bar(x=stk_df2.index, y=stk_df2["Volume"],
+                    marker_color=sv2, opacity=0.22, name="成交量", yaxis="y2"))
+            fig_s.update_layout(
+                paper_bgcolor=CHART_BG2, plot_bgcolor=CHART_BG2,
                 font=dict(color="#94a3b8", family="Space Mono", size=11),
-                xaxis=dict(
-                    gridcolor=GRID_CLR, showgrid=True,
-                    tickformat="%H:%M",
-                    rangeslider=dict(visible=False),
-                    showline=True, linecolor=GRID_CLR,
-                ),
-                # 主 Y 軸：縮放到價格區間，右側顯示
-                yaxis=dict(
-                    gridcolor=GRID_CLR, showgrid=True,
-                    side="right",
-                    range=y_range,
-                    tickformat=",.0f",
-                ),
-                # 副 Y 軸：成交量，佔圖底部 20%
-                yaxis2=dict(
-                    overlaying="y", side="left",
-                    showgrid=False, showticklabels=False,
-                    range=[0, df_intra["Volume"].max() * 8] if has_vol else [0, 1],
-                ),
-                legend=dict(orientation="h", y=1.06,
-                            font=dict(size=10, color="#6b7280"), bgcolor="rgba(0,0,0,0)"),
-                margin=dict(l=0, r=80, t=28, b=10),
-                height=420, hovermode="x unified",
+                xaxis=dict(gridcolor=GRID_CLR2, rangeslider=dict(visible=False)),
+                yaxis=dict(gridcolor=GRID_CLR2, side="right"),
+                yaxis2=dict(overlaying="y", side="left", showgrid=False, showticklabels=False,
+                            range=[0, stk_df2["Volume"].max()*5] if stk_df2["Volume"].sum()>0 else [0,1]),
+                legend=dict(orientation="h", y=1.06, font=dict(size=10,color="#6b7280"), bgcolor="rgba(0,0,0,0)"),
+                margin=dict(l=0, r=10, t=28, b=10), height=480, hovermode="x unified",
             )
-            st.plotly_chart(fig_intra, use_container_width=True)
-
-            # 今日摘要列
-            st.markdown(f"""
-            <div style="display:flex;align-items:center;gap:16px;padding:6px 4px;flex-wrap:wrap;">
-              <span style="font-family:Space Mono;font-size:0.7rem;color:#475569;">今日區間</span>
-              <span style="font-family:Space Mono;font-size:0.8rem;color:#34d399;">▼ {fmt_price(today_low, sel_kind)}</span>
-              <span style="font-family:Space Mono;font-size:0.7rem;color:#374151;">—</span>
-              <span style="font-family:Space Mono;font-size:0.8rem;color:#f87171;">▲ {fmt_price(today_high, sel_kind)}</span>
-              <span style="font-family:Space Mono;font-size:0.75rem;color:{intra_color};margin-left:12px;">
-                {intra_arrow} 較前收 {intra_chg:+.4f} ({intra_pct:+.2f}%)
-              </span>
-              <span style="font-family:Space Mono;font-size:0.58rem;color:#1e293b;margin-left:auto;">
-                每 5 分鐘更新 · {datetime.now().strftime("%H:%M:%S")}
-              </span>
+            st.plotly_chart(fig_s, use_container_width=True)
+            st.markdown("""
+            <div style="display:flex;gap:20px;padding:6px 4px 0;flex-wrap:wrap;">
+              <span style="font-family:Space Mono;font-size:0.65rem;color:#facc15;">━ 5日線</span>
+              <span style="font-family:Space Mono;font-size:0.65rem;color:#60a5fa;">━ 月線(MA20)</span>
+              <span style="font-family:Space Mono;font-size:0.65rem;color:#f97316;">━ 季線(MA60)</span>
+              <span style="font-family:Space Mono;font-size:0.65rem;color:#c084fc;">━ 年線(MA240)</span>
+              <span style="font-family:Space Mono;font-size:0.65rem;color:#f87171;">█ 漲</span>
+              <span style="font-family:Space Mono;font-size:0.65rem;color:#34d399;">█ 跌</span>
             </div>
             """, unsafe_allow_html=True)
 
-        else:
-            st.info("⏰ 目前非交易時間，或尚無今日盤中資料。請於交易時段查看。")
+        # 相關新聞
+        with s_news_tab:
+            snews = get_news(stk_sym, n=10)
+            if snews:
+                for item in snews:
+                    title  = item.get("title","（無標題）")
+                    link   = item.get("link","#")
+                    pub_ts = item.get("providerPublishTime",0)
+                    source = item.get("publisher","未知來源")
+                    pub_dt = datetime.fromtimestamp(pub_ts).strftime("%Y-%m-%d %H:%M") if pub_ts else ""
+                    st.markdown(f"""
+                    <div style="background:#0d1423;border:1px solid #1a2540;border-radius:8px;
+                         padding:12px 16px;margin-bottom:8px;">
+                      <a href="{link}" target="_blank" style="text-decoration:none;">
+                        <div style="font-size:0.88rem;color:#c7d2fe;font-weight:500;line-height:1.5;">{title}</div>
+                      </a>
+                      <div style="font-size:0.65rem;color:#334155;font-family:Space Mono;margin-top:5px;">
+                        📰 {source} &nbsp;·&nbsp; {pub_dt}
+                      </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.info("目前無相關新聞")
+    else:
+        st.warning(f"⚠ 無法取得 **{stk_name}**（`{stk_sym}`）的歷史資料")
 
-    with chart_tab:
-        df2 = df.copy()
-        df2["MA5"]   = df2["Close"].rolling(5).mean()
-        df2["MA20"]  = df2["Close"].rolling(20).mean()
-        df2["MA60"]  = df2["Close"].rolling(60).mean()
-        df2["MA240"] = df2["Close"].rolling(240).mean()
+else:
+    # ── 一般分頁 ──────────────────────────────────────────
+    page_data = PAGES[cur_page]
+    accent    = page_data["color"]
+    items     = page_data["items"]
 
-        fig = go.Figure()
+    # Hero
+    st.markdown(f"""
+    <div class="hero">
+      <div>
+        <div class="hero-title">{page_data['icon']} {page_data['label']}</div>
+        <div class="hero-sub">{page_data['subtitle']}</div>
+      </div>
+      <div class="hero-time">
+        {datetime.now().strftime('%Y.%m.%d')}<br>
+        {datetime.now().strftime('%H:%M')} TST
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-        fig.add_trace(go.Candlestick(
-            x=df2.index,
-            open=df2["Open"], high=df2["High"],
-            low=df2["Low"],   close=df2["Close"],
-            increasing_line_color="#f87171", increasing_fillcolor="#f87171",
-            decreasing_line_color="#34d399", decreasing_fillcolor="#34d399",
-            name="K線",
-        ))
 
-        for col_n, clr, lbl in [
-            ("MA5",   "#facc15", "5日線"),
-            ("MA20",  "#60a5fa", "月線(20)"),
-            ("MA60",  "#f97316", "季線(60)"),
-            ("MA240", "#c084fc", "年線(240)"),
-        ]:
-            fig.add_trace(go.Scatter(
-                x=df2.index, y=df2[col_n],
-                mode="lines", line=dict(color=clr, width=1.4),
-                name=lbl,
-            ))
-
-        if "Volume" in df2 and df2["Volume"].sum() > 0:
-            vol_colors = ["#f87171" if c >= o else "#34d399"
-                          for c, o in zip(df2["Close"], df2["Open"])]
-            fig.add_trace(go.Bar(
-                x=df2.index, y=df2["Volume"],
-                marker_color=vol_colors, opacity=0.22,
-                name="成交量", yaxis="y2",
-            ))
-
-        fig.update_layout(
-            paper_bgcolor=CHART_BG, plot_bgcolor=CHART_BG,
-            font=dict(color="#94a3b8", family="Space Mono", size=11),
-            xaxis=dict(gridcolor=GRID_CLR, rangeslider=dict(visible=False), showgrid=True),
-            yaxis=dict(gridcolor=GRID_CLR, side="right", showgrid=True),
-            yaxis2=dict(overlaying="y", side="left", showgrid=False, showticklabels=False,
-                        range=[0, df2["Volume"].max() * 5] if "Volume" in df2 and df2["Volume"].sum() > 0 else [0, 1]),
-            legend=dict(orientation="h", y=1.06, font=dict(size=10, color="#6b7280"), bgcolor="rgba(0,0,0,0)"),
-            margin=dict(l=0, r=10, t=28, b=10),
-            height=480, hovermode="x unified",
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-        st.markdown("""
-        <div style="display:flex;gap:20px;padding:6px 4px 0;flex-wrap:wrap;">
-          <span style="font-family:Space Mono;font-size:0.65rem;color:#facc15;">━ 5日線</span>
-          <span style="font-family:Space Mono;font-size:0.65rem;color:#60a5fa;">━ 月線 (MA20)</span>
-          <span style="font-family:Space Mono;font-size:0.65rem;color:#f97316;">━ 季線 (MA60)</span>
-          <span style="font-family:Space Mono;font-size:0.65rem;color:#c084fc;">━ 年線 (MA240)</span>
-          <span style="font-family:Space Mono;font-size:0.65rem;color:#f87171;">█ 漲</span>
-          <span style="font-family:Space Mono;font-size:0.65rem;color:#34d399;">█ 跌</span>
+    # ── 迷你卡片網格（每列 6 個）──────────────────────────────
+    COLS_PER_ROW = 6
+    
+    for row_start in range(0, len(items), COLS_PER_ROW):
+        row_items = items[row_start : row_start + COLS_PER_ROW]
+        padded = row_items + [None] * (COLS_PER_ROW - len(row_items))
+        cols = st.columns(COLS_PER_ROW)
+    
+        for col, item in zip(cols, padded):
+            if item is None:
+                col.empty()
+                continue
+    
+            name, sym, kind = item
+            q = fetch_q(sym, kind)
+            price_str = fmt_price(q["price"], kind, name)
+            arrow  = "▲" if q["pct"] >= 0 else "▼"
+            d_cls  = "mc-up" if q["pct"] > 0 else ("mc-down" if q["pct"] < 0 else "mc-flat")
+            is_sel = (st.session_state.sel_sym == sym)
+            card_cls = "mini-card active" if is_sel else "mini-card"
+            border_style = f"border-color:{accent};" if is_sel else ""
+            spark = mini_sparkline(sym, accent if is_sel else "#1e3a5f")
+    
+            col.markdown(f"""
+            <div class="{card_cls}" style="{border_style}">
+              <div class="mc-name">{name}</div>
+              <div class="mc-price">{price_str}</div>
+              <div class="{d_cls}">{arrow} {q['pct']:+.2f}%</div>
+              <div style="margin-top:4px;">{spark}</div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+            if col.button("▼ 展開", key=f"sel_{sym}"):
+                st.session_state.sel_sym  = sym
+                st.session_state.sel_name = name
+                st.session_state.sel_kind = kind
+                st.rerun()
+    
+    
+    # ══════════════════════════════════════════════════════════
+    # 詳細圖表區
+    # ══════════════════════════════════════════════════════════
+    
+    sel_sym  = st.session_state.sel_sym
+    sel_name = st.session_state.sel_name
+    sel_kind = st.session_state.sel_kind
+    q = fetch_q(sel_sym, sel_kind)
+    
+    price_str   = fmt_price(q["price"], sel_kind, sel_name)
+    arrow       = "▲" if q["pct"] >= 0 else "▼"
+    delta_color = "#f87171" if q["pct"] > 0 else ("#34d399" if q["pct"] < 0 else "#6b7280")
+    
+    st.markdown('<hr style="border:none;border-top:1px solid #141e30;margin:16px 0 12px;">', unsafe_allow_html=True)
+    
+    # 標題列
+    h1, h2 = st.columns([5, 1])
+    with h1:
+        st.markdown(f"""
+        <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;">
+          <span style="font-family:Space Mono;font-size:0.9rem;font-weight:700;color:{accent};
+                background:{hex_to_rgba(accent,0.1)};padding:3px 10px;border-radius:5px;
+                border:1px solid {hex_to_rgba(accent,0.3)};">{sel_name}</span>
+          <span style="font-family:Space Mono;font-size:1.8rem;font-weight:700;color:#f1f5f9;">{price_str}</span>
+          <span style="font-family:Space Mono;font-size:0.95rem;color:{delta_color};">
+            {arrow} {q['change']:+.4f} &nbsp;({q['pct']:+.2f}%)
+          </span>
         </div>
         """, unsafe_allow_html=True)
-
-    with news_tab:
-        news_list = get_news(sel_sym, n=10)
-        if news_list:
-            for item in news_list:
-                title  = item.get("title", "（無標題）")
-                link   = item.get("link", "#")
-                pub_ts = item.get("providerPublishTime", 0)
-                source = item.get("publisher", "未知來源")
-                pub_dt = datetime.fromtimestamp(pub_ts).strftime("%Y-%m-%d %H:%M") if pub_ts else ""
+    
+    with h2:
+        pass
+    
+    # 期間選擇
+    period_map = {"1M": "1mo", "3M": "3mo", "6M": "6mo", "1Y": "1y", "2Y": "2y"}
+    pcols = st.columns([1, 1, 1, 1, 1, 8])
+    for pc, (lbl, val) in zip(pcols[:5], period_map.items()):
+        if pc.button(lbl, key=f"dp_{val}"):
+            st.session_state.detail_period = val
+            st.rerun()
+    
+    detail_period = st.session_state.detail_period
+    df = get_history(sel_sym, detail_period)
+    
+    CHART_BG = "#09101f"
+    GRID_CLR = "#141e30"
+    
+    if not df.empty:
+        today_tab, chart_tab, news_tab = st.tabs(["⚡ 今日走勢", "📊 圖表分析", "📰 相關新聞"])
+    
+        # ── 今日即時走勢 ──────────────────────────────────────
+        with today_tab:
+            df_intra = get_intraday(sel_sym)
+    
+            if not df_intra.empty and len(df_intra) > 1:
+                # ── 取得前一交易日收盤作為走勢起點 ──────────────
+                df_prev = get_history(sel_sym, "5d")
+                if not df_prev.empty and len(df_prev) >= 2:
+                    prev_close = float(df_prev["Close"].iloc[-2])
+                else:
+                    prev_close = float(df_intra["Open"].iloc[0])
+    
+                open_price = float(df_intra["Open"].iloc[0])
+                last_price = float(df_intra["Close"].iloc[-1])
+    
+                # 漲跌相對前一日收盤計算
+                intra_chg   = last_price - prev_close
+                intra_pct   = (intra_chg / prev_close * 100) if prev_close else 0
+                intra_color = "#f87171" if intra_chg >= 0 else "#34d399"
+                intra_arrow = "▲" if intra_chg >= 0 else "▼"
+                today_high  = float(df_intra["High"].max())
+                today_low   = float(df_intra["Low"].min())
+                today_vol   = int(df_intra["Volume"].sum()) if "Volume" in df_intra else 0
+    
+                # ── 統計小卡（增加前收欄位）────────────────────
+                col_a, col_b, col_c, col_d, col_e = st.columns(5)
+                for c, label, val in [
+                    (col_a, "前收",   fmt_price(prev_close, sel_kind, sel_name)),
+                    (col_b, "開盤",   fmt_price(open_price, sel_kind, sel_name)),
+                    (col_c, "最高",   fmt_price(today_high, sel_kind, sel_name)),
+                    (col_d, "最低",   fmt_price(today_low,  sel_kind, sel_name)),
+                    (col_e, "成交量", f"{today_vol:,}" if today_vol else "—"),
+                ]:
+                    c.markdown(f"""
+                    <div style="background:#0d1423;border:1px solid #1a2540;border-radius:8px;
+                         padding:10px 14px;margin-bottom:12px;">
+                      <div style="font-family:Space Mono;font-size:0.6rem;color:#475569;
+                           letter-spacing:1px;margin-bottom:4px;">{label}</div>
+                      <div style="font-family:Space Mono;font-size:1rem;font-weight:700;
+                           color:#f1f5f9;">{val}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+    
+                # ── 走勢圖：前收起點 → 今日分鐘線 ─────────────
+                # 在盤中資料前插入前一日收盤點，讓折線從前收出發
+                prev_ts = df_intra.index[0] - pd.Timedelta(minutes=5)
+                anchor_row = pd.DataFrame(
+                    {"Open": prev_close, "High": prev_close,
+                     "Low": prev_close, "Close": prev_close, "Volume": 0},
+                    index=[prev_ts],
+                )
+                df_plot = pd.concat([anchor_row, df_intra])
+    
+                fig_intra = go.Figure()
+    
+                # 前收基準線（實線，帶標籤）
+                fig_intra.add_hline(
+                    y=prev_close,
+                    line=dict(color="#475569", width=1, dash="dash"),
+                    annotation_text=f"前收 {fmt_price(prev_close, sel_kind)}",
+                    annotation_font=dict(color="#6b7280", size=10, family="Space Mono"),
+                    annotation_position="left",
+                )
+    
+                # 今日開盤參考線（點線）
+                if abs(open_price - prev_close) / prev_close > 0.001:
+                    fig_intra.add_hline(
+                        y=open_price,
+                        line=dict(color="#334155", width=1, dash="dot"),
+                        annotation_text=f"開盤 {fmt_price(open_price, sel_kind)}",
+                        annotation_font=dict(color="#475569", size=9, family="Space Mono"),
+                        annotation_position="left",
+                    )
+    
+                # ── 計算 Y 軸範圍：以前收為中心，加上緩衝 ────
+                line_color = intra_color
+                all_prices = list(df_plot["Close"].dropna())
+                y_min = min(all_prices)
+                y_max = max(all_prices)
+                y_pad = (y_max - y_min) * 0.15 if y_max != y_min else y_max * 0.005
+                y_range = [y_min - y_pad, y_max + y_pad * 2]   # 上方多留空間放標籤
+    
+                # 走勢面積線（從前收起點開始，fill 到 y_min 而非 0）
+                fig_intra.add_trace(go.Scatter(
+                    x=df_plot.index,
+                    y=df_plot["Close"],
+                    mode="lines",
+                    line=dict(color=line_color, width=2),
+                    fill="none",
+                    name="成交價",
+                    hovertemplate="%{x|%H:%M}<br>%{y:,.2f}<extra></extra>",
+                ))
+    
+                # 成交量（獨立子圖，不影響主圖 Y 軸）
+                has_vol = "Volume" in df_intra and df_intra["Volume"].sum() > 0
+                if has_vol:
+                    vol_c = ["#f87171" if c >= o else "#34d399"
+                             for c, o in zip(df_intra["Close"], df_intra["Open"])]
+                    fig_intra.add_trace(go.Bar(
+                        x=df_intra.index, y=df_intra["Volume"],
+                        marker_color=vol_c, opacity=0.28,
+                        name="成交量", yaxis="y2",
+                    ))
+    
+                # 最新價格標記
+                fig_intra.add_trace(go.Scatter(
+                    x=[df_intra.index[-1]],
+                    y=[last_price],
+                    mode="markers+text",
+                    marker=dict(color=line_color, size=9, symbol="circle",
+                                line=dict(color="#070b14", width=1)),
+                    text=[fmt_price(last_price, sel_kind, sel_name)],
+                    textposition="top right",
+                    textfont=dict(color=line_color, size=11, family="Space Mono"),
+                    name="最新", showlegend=False,
+                ))
+    
+                # 前收價右側標籤
+                fig_intra.add_annotation(
+                    x=1, xref="paper", y=prev_close,
+                    text=f"前收 {fmt_price(prev_close, sel_kind)}",
+                    showarrow=False,
+                    xanchor="left", yanchor="middle",
+                    font=dict(color="#6b7280", size=10, family="Space Mono"),
+                    bgcolor="rgba(9,16,31,0.7)",
+                )
+    
+                fig_intra.update_layout(
+                    paper_bgcolor=CHART_BG, plot_bgcolor=CHART_BG,
+                    font=dict(color="#94a3b8", family="Space Mono", size=11),
+                    xaxis=dict(
+                        gridcolor=GRID_CLR, showgrid=True,
+                        tickformat="%H:%M",
+                        rangeslider=dict(visible=False),
+                        showline=True, linecolor=GRID_CLR,
+                    ),
+                    # 主 Y 軸：縮放到價格區間，右側顯示
+                    yaxis=dict(
+                        gridcolor=GRID_CLR, showgrid=True,
+                        side="right",
+                        range=y_range,
+                        tickformat=",.0f",
+                    ),
+                    # 副 Y 軸：成交量，佔圖底部 20%
+                    yaxis2=dict(
+                        overlaying="y", side="left",
+                        showgrid=False, showticklabels=False,
+                        range=[0, df_intra["Volume"].max() * 8] if has_vol else [0, 1],
+                    ),
+                    legend=dict(orientation="h", y=1.06,
+                                font=dict(size=10, color="#6b7280"), bgcolor="rgba(0,0,0,0)"),
+                    margin=dict(l=0, r=80, t=28, b=10),
+                    height=420, hovermode="x unified",
+                )
+                st.plotly_chart(fig_intra, use_container_width=True)
+    
+                # 今日摘要列
                 st.markdown(f"""
-                <div style="background:#0d1423;border:1px solid #1a2540;border-radius:8px;
-                     padding:12px 16px;margin-bottom:8px;">
-                  <a href="{link}" target="_blank" style="text-decoration:none;">
-                    <div style="font-size:0.88rem;color:#c7d2fe;font-weight:500;line-height:1.5;">{title}</div>
-                  </a>
-                  <div style="font-size:0.65rem;color:#334155;font-family:Space Mono;margin-top:5px;">
-                    📰 {source} &nbsp;·&nbsp; {pub_dt}
-                  </div>
+                <div style="display:flex;align-items:center;gap:16px;padding:6px 4px;flex-wrap:wrap;">
+                  <span style="font-family:Space Mono;font-size:0.7rem;color:#475569;">今日區間</span>
+                  <span style="font-family:Space Mono;font-size:0.8rem;color:#34d399;">▼ {fmt_price(today_low, sel_kind)}</span>
+                  <span style="font-family:Space Mono;font-size:0.7rem;color:#374151;">—</span>
+                  <span style="font-family:Space Mono;font-size:0.8rem;color:#f87171;">▲ {fmt_price(today_high, sel_kind)}</span>
+                  <span style="font-family:Space Mono;font-size:0.75rem;color:{intra_color};margin-left:12px;">
+                    {intra_arrow} 較前收 {intra_chg:+.4f} ({intra_pct:+.2f}%)
+                  </span>
+                  <span style="font-family:Space Mono;font-size:0.58rem;color:#1e293b;margin-left:auto;">
+                    每 5 分鐘更新 · {datetime.now().strftime("%H:%M:%S")}
+                  </span>
                 </div>
                 """, unsafe_allow_html=True)
-        else:
-            st.info("目前無相關新聞")
-else:
-    st.warning(f"⚠ 無法取得 **{sel_name}**（`{sel_sym}`）的歷史資料")
-
+    
+            else:
+                st.info("⏰ 目前非交易時間，或尚無今日盤中資料。請於交易時段查看。")
+    
+        with chart_tab:
+            df2 = df.copy()
+            df2["MA5"]   = df2["Close"].rolling(5).mean()
+            df2["MA20"]  = df2["Close"].rolling(20).mean()
+            df2["MA60"]  = df2["Close"].rolling(60).mean()
+            df2["MA240"] = df2["Close"].rolling(240).mean()
+    
+            fig = go.Figure()
+    
+            fig.add_trace(go.Candlestick(
+                x=df2.index,
+                open=df2["Open"], high=df2["High"],
+                low=df2["Low"],   close=df2["Close"],
+                increasing_line_color="#f87171", increasing_fillcolor="#f87171",
+                decreasing_line_color="#34d399", decreasing_fillcolor="#34d399",
+                name="K線",
+            ))
+    
+            for col_n, clr, lbl in [
+                ("MA5",   "#facc15", "5日線"),
+                ("MA20",  "#60a5fa", "月線(20)"),
+                ("MA60",  "#f97316", "季線(60)"),
+                ("MA240", "#c084fc", "年線(240)"),
+            ]:
+                fig.add_trace(go.Scatter(
+                    x=df2.index, y=df2[col_n],
+                    mode="lines", line=dict(color=clr, width=1.4),
+                    name=lbl,
+                ))
+    
+            if "Volume" in df2 and df2["Volume"].sum() > 0:
+                vol_colors = ["#f87171" if c >= o else "#34d399"
+                              for c, o in zip(df2["Close"], df2["Open"])]
+                fig.add_trace(go.Bar(
+                    x=df2.index, y=df2["Volume"],
+                    marker_color=vol_colors, opacity=0.22,
+                    name="成交量", yaxis="y2",
+                ))
+    
+            fig.update_layout(
+                paper_bgcolor=CHART_BG, plot_bgcolor=CHART_BG,
+                font=dict(color="#94a3b8", family="Space Mono", size=11),
+                xaxis=dict(gridcolor=GRID_CLR, rangeslider=dict(visible=False), showgrid=True),
+                yaxis=dict(gridcolor=GRID_CLR, side="right", showgrid=True),
+                yaxis2=dict(overlaying="y", side="left", showgrid=False, showticklabels=False,
+                            range=[0, df2["Volume"].max() * 5] if "Volume" in df2 and df2["Volume"].sum() > 0 else [0, 1]),
+                legend=dict(orientation="h", y=1.06, font=dict(size=10, color="#6b7280"), bgcolor="rgba(0,0,0,0)"),
+                margin=dict(l=0, r=10, t=28, b=10),
+                height=480, hovermode="x unified",
+            )
+            st.plotly_chart(fig, use_container_width=True)
+    
+            st.markdown("""
+            <div style="display:flex;gap:20px;padding:6px 4px 0;flex-wrap:wrap;">
+              <span style="font-family:Space Mono;font-size:0.65rem;color:#facc15;">━ 5日線</span>
+              <span style="font-family:Space Mono;font-size:0.65rem;color:#60a5fa;">━ 月線 (MA20)</span>
+              <span style="font-family:Space Mono;font-size:0.65rem;color:#f97316;">━ 季線 (MA60)</span>
+              <span style="font-family:Space Mono;font-size:0.65rem;color:#c084fc;">━ 年線 (MA240)</span>
+              <span style="font-family:Space Mono;font-size:0.65rem;color:#f87171;">█ 漲</span>
+              <span style="font-family:Space Mono;font-size:0.65rem;color:#34d399;">█ 跌</span>
+            </div>
+            """, unsafe_allow_html=True)
+    
+        with news_tab:
+            news_list = get_news(sel_sym, n=10)
+            if news_list:
+                for item in news_list:
+                    title  = item.get("title", "（無標題）")
+                    link   = item.get("link", "#")
+                    pub_ts = item.get("providerPublishTime", 0)
+                    source = item.get("publisher", "未知來源")
+                    pub_dt = datetime.fromtimestamp(pub_ts).strftime("%Y-%m-%d %H:%M") if pub_ts else ""
+                    st.markdown(f"""
+                    <div style="background:#0d1423;border:1px solid #1a2540;border-radius:8px;
+                         padding:12px 16px;margin-bottom:8px;">
+                      <a href="{link}" target="_blank" style="text-decoration:none;">
+                        <div style="font-size:0.88rem;color:#c7d2fe;font-weight:500;line-height:1.5;">{title}</div>
+                      </a>
+                      <div style="font-size:0.65rem;color:#334155;font-family:Space Mono;margin-top:5px;">
+                        📰 {source} &nbsp;·&nbsp; {pub_dt}
+                      </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.info("目前無相關新聞")
+    else:
+        st.warning(f"⚠ 無法取得 **{sel_name}**（`{sel_sym}`）的歷史資料")
+    
 # 頁尾
 st.markdown(
     f'<div style="text-align:center;font-family:Space Mono;font-size:0.55rem;'
