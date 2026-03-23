@@ -55,73 +55,32 @@ button[data-testid="collapsedControl"] {
     text-transform:uppercase; margin-bottom:16px;
     padding-bottom:10px; border-bottom:1px solid #141e30;
 }
-.nav-btn {
-    display:flex; align-items:center; gap:10px;
-    padding: 10px 12px; border-radius:8px; margin-bottom:4px;
-    cursor:pointer; transition:all 0.15s;
-    border:1px solid transparent;
-    font-family:'Space Mono',monospace; font-size:0.72rem;
-    color:#4b5563; background:transparent;
-    text-decoration:none;
-}
-.nav-btn:hover { background:#111d35; color:#94a3b8; border-color:#1e293b; }
-.nav-btn.active {
-    background:#1a1f35; color:#a5b4fc;
-    border-color:#4f46e5;
-    box-shadow: inset 3px 0 0 #4f46e5;
-}
-.nav-icon { font-size:1.1rem; }
-.nav-label { font-size:0.72rem; }
-
-/* ── 響應式卡片網格 ── */
-.card-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 8px;
-    margin-bottom: 4px;
-}
-@media (max-width: 1100px) {
-    .card-grid { grid-template-columns: repeat(4, 1fr); }
-}
-@media (max-width: 700px) {
-    .card-grid { grid-template-columns: repeat(3, 1fr); }
-}
 
 /* 迷你卡片 */
 .mini-card {
     background: #0d1423;
     border: 1px solid #1a2540;
     border-radius: 10px;
-    padding: 10px 12px 8px;
+    padding: 10px 12px 6px;
     position: relative;
     overflow: hidden;
-    box-sizing: border-box;
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    height: 100%;
 }
-.mini-card:hover { border-color: #2d3f6b; background: #111d35; }
 .mini-card.active {
     border-color: #818cf8 !important;
     background: #151e38 !important;
     box-shadow: 0 0 0 2px rgba(129,140,248,0.15), 0 4px 20px rgba(79,70,229,0.15);
 }
 .mini-card.active::after {
-    content: '▼';
-    position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
-    font-size: 0.5rem; color: #818cf8; line-height: 1;
+    content:'▼';
+    position:absolute; bottom:-2px; left:50%; transform:translateX(-50%);
+    font-size:0.5rem; color:#818cf8; line-height:1;
 }
 .mc-name  { font-family:'Space Mono',monospace; font-size:0.56rem; color:#475569; letter-spacing:1px; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.mc-price { font-family:'Space Mono',monospace; font-size:0.9rem; font-weight:700; color:#f1f5f9; margin-bottom:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mc-price { font-family:'Space Mono',monospace; font-size:0.9rem; font-weight:700; color:#f1f5f9; margin-bottom:1px; }
 .mc-up    { font-family:'Space Mono',monospace; font-size:0.62rem; color:#f87171; }
 .mc-down  { font-family:'Space Mono',monospace; font-size:0.62rem; color:#34d399; }
 .mc-flat  { font-family:'Space Mono',monospace; font-size:0.62rem; color:#4b5563; }
-
-@media (max-width: 700px) {
-    .mc-price { font-size: 0.8rem; }
-    .mc-name  { font-size: 0.5rem; }
-    .mini-card { padding: 8px 8px 6px; }
-    .hero-title { font-size: 1rem !important; }
-}
 
 /* 分類列標題 */
 .cat-bar {
@@ -132,23 +91,16 @@ button[data-testid="collapsedControl"] {
     margin: 4px 0 10px;
 }
 
-/* 展開選擇按鈕（隱藏式，視覺上融入卡片底部） */
+/* 展開按鈕 */
 .stButton > button {
-    background: transparent !important;
-    color: #1e293b !important;
-    border: none !important;
-    border-radius: 0 !important;
-    font-family: 'Space Mono', monospace !important;
-    font-size: 0.55rem !important;
-    padding: 1px 0 !important;
-    margin-top: -4px !important;
-    transition: color 0.15s !important;
-    width: 100% !important;
-    line-height: 1 !important;
+    background: #0a0f1e !important; color: #374151 !important;
+    border: 1px solid #141e30 !important; border-radius: 0 0 8px 8px !important;
+    font-family: 'Space Mono', monospace !important; font-size:0.6rem !important;
+    padding: 2px 4px !important; margin-top:0 !important;
+    transition: all 0.15s !important; width:100% !important;
 }
 .stButton > button:hover {
-    color: #818cf8 !important;
-    background: transparent !important;
+    background: #151e38 !important; border-color:#4f46e5 !important; color:#818cf8 !important;
 }
 
 /* Tab 覆寫 */
@@ -388,14 +340,10 @@ with st.sidebar:
 
     for pname, pdata in PAGES.items():
         is_active = (st.session_state.page == pname)
-        active_cls = "nav-btn active" if is_active else "nav-btn"
-        color = pdata["color"] if is_active else "#4b5563"
+        color = pdata["color"]
+        btn_label = f"{pdata['icon']}  {pdata['label']}"
 
-        if st.button(
-            f"{pdata['icon']}  {pdata['label']}",
-            key=f"nav_{pname}",
-            use_container_width=True,
-        ):
+        if st.button(btn_label, key=f"nav_{pname}", use_container_width=True):
             st.session_state.page = pname
             first = pdata["items"][0]
             st.session_state.sel_sym  = first[1]
@@ -405,7 +353,6 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # 重新整理
     if st.button("🔄 更新資料", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
@@ -443,40 +390,43 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 
-# ── 響應式卡片網格（純 HTML，手機 3欄 / 桌機 6欄）──────────
-cards_html = '<div class="card-grid">'
+# ── 迷你卡片網格（每列 6 個）──────────────────────────────
+COLS_PER_ROW = 6
 
-for name, sym, kind in items:
-    q = fetch_q(sym, kind)
-    price_str = fmt_price(q["price"], kind, name)
-    arrow  = "▲" if q["pct"] >= 0 else "▼"
-    d_cls  = "mc-up" if q["pct"] > 0 else ("mc-down" if q["pct"] < 0 else "mc-flat")
-    is_sel = (st.session_state.sel_sym == sym)
-    card_cls = "mini-card active" if is_sel else "mini-card"
-    border_style = f"border-color:{accent};" if is_sel else ""
-    spark = mini_sparkline(sym, accent if is_sel else "#1e3a5f")
+for row_start in range(0, len(items), COLS_PER_ROW):
+    row_items = items[row_start : row_start + COLS_PER_ROW]
+    padded = row_items + [None] * (COLS_PER_ROW - len(row_items))
+    cols = st.columns(COLS_PER_ROW)
 
-    cards_html += f"""
-    <div class="{card_cls}" style="{border_style}">
-      <div class="mc-name">{name}</div>
-      <div class="mc-price">{price_str}</div>
-      <div class="{d_cls}">{arrow} {q['pct']:+.2f}%</div>
-      <div style="margin-top:5px;">{spark}</div>
-    </div>"""
+    for col, item in zip(cols, padded):
+        if item is None:
+            col.empty()
+            continue
 
-cards_html += '</div>'
-st.markdown(cards_html, unsafe_allow_html=True)
+        name, sym, kind = item
+        q = fetch_q(sym, kind)
+        price_str = fmt_price(q["price"], kind, name)
+        arrow  = "▲" if q["pct"] >= 0 else "▼"
+        d_cls  = "mc-up" if q["pct"] > 0 else ("mc-down" if q["pct"] < 0 else "mc-flat")
+        is_sel = (st.session_state.sel_sym == sym)
+        card_cls = "mini-card active" if is_sel else "mini-card"
+        border_style = f"border-color:{accent};" if is_sel else ""
+        spark = mini_sparkline(sym, accent if is_sel else "#1e3a5f")
 
-# 隱藏式按鈕列（讓卡片可以被選取）——用透明按鈕對應每張卡
-btn_cols = st.columns(len(items))
-for bc, (name, sym, kind) in zip(btn_cols, items):
-    is_sel = (st.session_state.sel_sym == sym)
-    label = "✦" if is_sel else "·"
-    if bc.button(label, key=f"sel_{sym}", help=f"展開 {name}"):
-        st.session_state.sel_sym  = sym
-        st.session_state.sel_name = name
-        st.session_state.sel_kind = kind
-        st.rerun()
+        col.markdown(f"""
+        <div class="{card_cls}" style="{border_style}">
+          <div class="mc-name">{name}</div>
+          <div class="mc-price">{price_str}</div>
+          <div class="{d_cls}">{arrow} {q['pct']:+.2f}%</div>
+          <div style="margin-top:4px;">{spark}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if col.button("▼ 展開", key=f"sel_{sym}"):
+            st.session_state.sel_sym  = sym
+            st.session_state.sel_name = name
+            st.session_state.sel_kind = kind
+            st.rerun()
 
 
 # ══════════════════════════════════════════════════════════
@@ -492,7 +442,7 @@ price_str   = fmt_price(q["price"], sel_kind, sel_name)
 arrow       = "▲" if q["pct"] >= 0 else "▼"
 delta_color = "#f87171" if q["pct"] > 0 else ("#34d399" if q["pct"] < 0 else "#6b7280")
 
-st.markdown(f'<hr style="border:none;border-top:1px solid #141e30;margin:16px 0 12px;">', unsafe_allow_html=True)
+st.markdown('<hr style="border:none;border-top:1px solid #141e30;margin:16px 0 12px;">', unsafe_allow_html=True)
 
 # 標題列
 h1, h2 = st.columns([5, 1])
@@ -510,22 +460,15 @@ with h1:
     """, unsafe_allow_html=True)
 
 with h2:
-    pass  # 空白對齊
+    pass
 
 # 期間選擇
 period_map = {"1M": "1mo", "3M": "3mo", "6M": "6mo", "1Y": "1y", "2Y": "2y"}
-if "detail_period" not in st.session_state:
-    st.session_state.detail_period = "1y"
-
-st.markdown('<div style="margin:10px 0 6px;display:flex;gap:6px;align-items:center;">', unsafe_allow_html=True)
-pcols = st.columns([1,1,1,1,1,8])
+pcols = st.columns([1, 1, 1, 1, 1, 8])
 for pc, (lbl, val) in zip(pcols[:5], period_map.items()):
-    is_p = (st.session_state.detail_period == val)
-    btn_style = f"background:{hex_to_rgba(accent,0.15)} !important;border-color:{accent} !important;color:{accent} !important;" if is_p else ""
     if pc.button(lbl, key=f"dp_{val}"):
         st.session_state.detail_period = val
         st.rerun()
-st.markdown('</div>', unsafe_allow_html=True)
 
 detail_period = st.session_state.detail_period
 df = get_history(sel_sym, detail_period)
@@ -545,7 +488,6 @@ if not df.empty:
 
         fig = go.Figure()
 
-        # K 線
         fig.add_trace(go.Candlestick(
             x=df2.index,
             open=df2["Open"], high=df2["High"],
@@ -555,7 +497,6 @@ if not df.empty:
             name="K線",
         ))
 
-        # 均線
         for col_n, clr, lbl in [
             ("MA5",   "#facc15", "5日線"),
             ("MA20",  "#60a5fa", "月線(20)"),
@@ -568,7 +509,6 @@ if not df.empty:
                 name=lbl,
             ))
 
-        # 成交量
         if "Volume" in df2 and df2["Volume"].sum() > 0:
             vol_colors = ["#f87171" if c >= o else "#34d399"
                           for c, o in zip(df2["Close"], df2["Open"])]
@@ -584,14 +524,13 @@ if not df.empty:
             xaxis=dict(gridcolor=GRID_CLR, rangeslider=dict(visible=False), showgrid=True),
             yaxis=dict(gridcolor=GRID_CLR, side="right", showgrid=True),
             yaxis2=dict(overlaying="y", side="left", showgrid=False, showticklabels=False,
-                        range=[0, df2["Volume"].max() * 5] if "Volume" in df2 and df2["Volume"].sum() > 0 else [0,1]),
+                        range=[0, df2["Volume"].max() * 5] if "Volume" in df2 and df2["Volume"].sum() > 0 else [0, 1]),
             legend=dict(orientation="h", y=1.06, font=dict(size=10, color="#6b7280"), bgcolor="rgba(0,0,0,0)"),
             margin=dict(l=0, r=10, t=28, b=10),
             height=480, hovermode="x unified",
         )
         st.plotly_chart(fig, use_container_width=True)
 
-        # 均線說明
         st.markdown("""
         <div style="display:flex;gap:20px;padding:6px 4px 0;flex-wrap:wrap;">
           <span style="font-family:Space Mono;font-size:0.65rem;color:#facc15;">━ 5日線</span>
